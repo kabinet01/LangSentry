@@ -16,3 +16,6 @@ __pycache__/
 *.ipa
 *.apk
 config.py
+
+bert-base-uncased
+corpus*
