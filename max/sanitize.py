@@ -3,19 +3,35 @@ import re
 import html
 import shlex
 
-def sanitize_input(user_input: str, context: str = "generic", max_length: int = 256) -> str:
+def detect_context(user_input: str) -> str:
     """
-    Sanitizes user input based on the specified context:
-    - 'generic': Applies general Unicode normalization, whitespace standardization, and special character filtering.
-    - 'html': Escapes dangerous HTML characters to prevent XSS attacks.
-    - 'sql': Only validates safe alphanumeric input and enforces length limits.
-    - 'shell': Uses shell escaping to prevent command injection.
+    Automatically detects the context of an input based on its contents.
+    Returns one of: 'html', 'sql', 'shell', or 'generic'.
+    """
 
-    :param user_input: The raw input string.
-    :param context: The sanitization context ('generic', 'html', 'sql', 'shell').
-    :param max_length: Maximum allowed length.
-    :return: A sanitized version of the input.
+    # Detect HTML/XSS attack patterns
+    if re.search(r'(?i)<script|onerror=|<iframe|javascript:', user_input):
+        return "html/javascript"
+
+    # Detect SQL Injection patterns
+    if re.search(r"(?i)\b(SELECT|INSERT|DELETE|UPDATE|DROP|--|;|\bUNION\b|\bOR\b|\bAND\b)", user_input):
+        return "sql"
+
+    # Detect Shell Injection patterns
+    if re.search(r'[\$`;&|><]', user_input) or re.search(r'(?i)\b(rm|chmod|chown|wget|curl|eval|exec|system)\b', user_input):
+        return "shell"
+
+    # If no specific attack pattern is found, treat as generic text
+    return "generic"
+
+def sanitize_input(user_input: str, max_length: int = 256) -> str:
     """
+    Detects input context and applies the appropriate sanitization.
+    """
+
+    # Detect context automatically
+    context = detect_context(user_input)
+    print(f"DEBUG: Detected context: {context}")  # Debugging statement
 
     # Enforce a strict length limit early
     user_input = user_input[:max_length]
@@ -26,39 +42,38 @@ def sanitize_input(user_input: str, context: str = "generic", max_length: int = 
     # Standardize whitespace (replace multiple spaces/newlines with a single space)
     sanitized = re.sub(r'\s+', ' ', sanitized).strip()
 
-    if context == "html":
-        # Escape HTML to prevent XSS (useful for web applications)
-        sanitized = html.escape(sanitized)
+    if context == "html/javascript":
+        sanitized = html.escape(sanitized)  # Escape HTML special characters
 
     elif context == "sql":
-        # Allow only alphanumeric characters + safe special characters for SQL input
         if not re.match(r"^[a-zA-Z0-9_@.\- ]*$", sanitized):
             raise ValueError("Invalid SQL input: contains unsafe characters.")
 
     elif context == "shell":
-        # Escape shell input to prevent command injection
-        sanitized = shlex.quote(sanitized)
+        sanitized = shlex.quote(sanitized)  # Escape shell input
 
-    else:
-        # Generic sanitization: Strip special characters commonly used in attacks
+    else:  # Generic sanitization
         sanitized = re.sub(r'[<>`"\';&]', '', sanitized)
 
-    return sanitized
+    return sanitized, context
 
 # Example Usage
 if __name__ == "__main__":
     test_inputs = [
-        {"input": "Hello <script>alert('XSS');</script>", "context": "html"},
-        {"input": "SELECT * FROM users WHERE name='admin' --", "context": "sql"},
-        {"input": "rm -rf /", "context": "shell"},
-        {"input": "   Normal   text  with    spaces!   ", "context": "generic"},
+        "Hello <script>alert('XSS');</script>",  # HTML/XSS
+        "SELECT * FROM users WHERE name='admin' --",  # SQL Injection
+        "rm -rf /",  # Shell Command Injection
+        "   Normal   text  with    spaces!   ",  # Generic Text
+        "chmod 777 /etc/passwd"  # Shell Injection
     ]
 
     for test in test_inputs:
-        print(f"Context: {test['context']}")
-        print(f"Raw Input: {repr(test['input'])}")
         try:
-            print(f"Sanitized: {repr(sanitize_input(test['input'], test['context']))}")
+            sanitized, detected_context = sanitize_input(test)
+            print(f"Detected Context: {detected_context}")
+            print(f"Raw Input: {repr(test)}")
+            print(f"Sanitized: {repr(sanitized)}")
+            print("-" * 50)
         except ValueError as e:
             print(f"Sanitization Failed: {e}")
-        print("-" * 50)
+            print("-" * 50)
