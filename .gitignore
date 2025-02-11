@@ -1,21 +1,79 @@
-# Build and Release Folders
-bin-debug/
-bin-release/
-[Oo]bj/
-[Bb]in/
-credentials/
-node_modules/
+# Python build artifacts
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Other files and folders
+# Virtual environments
+venv/
+env/
+ENV/
+.env
+.venv
+pythonenv*
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.project
+.pydevproject
 .settings/
+*.sublime-workspace
+*.sublime-project
 
-# Executables
-*.swf
-*.air
-*.ipa
-*.apk
+# Testing
+.coverage
+.tox/
+.pytest_cache/
+htmlcov/
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# Distribution
+.Python
+*.manifest
+*.spec
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
 config.py
 
 bert-base-uncased
 corpus*
+
+venv
