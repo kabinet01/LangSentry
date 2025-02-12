@@ -11,10 +11,18 @@ def clean_sentences():
     return sentences
 
 
-def get_embeddings():
+def get_embeddings(sentences):
+    print("Checking for updates...")
     try:
-        return np.load("embeddings.npy")
+        embeddings = np.load("embeddings.npy")
+        if len(embeddings) == len(sentences):
+            print("No updates found. Proceeding...")
+            return embeddings
+        else:
+            print("Update to database found. Importing...")
+            return create_embeddings()
     except FileNotFoundError:
+        print("No database found. Importing...")
         return create_embeddings()
 
 
@@ -35,10 +43,9 @@ def main():
     # load our Sentence Transformers model pre trained!!
     model = SentenceTransformer('all-MiniLM-L6-v2')
     sentences = clean_sentences()
-    embeddings = get_embeddings()
-
+    embeddings = get_embeddings(sentences)
     while True:
-        query = input("test: ")
+        query = input("Enter prompt: ")
         my_embedding = model.encode(query)
 
         final_winners = get_cossim(my_embedding, embeddings, sentences)
