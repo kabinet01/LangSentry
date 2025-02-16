@@ -3,9 +3,7 @@ from sentence_transformers import SentenceTransformer, util
 import numpy as np
 
 
-def create_embeddings():
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    sentences = clean_sentences()
+def create_embeddings(sentences, model):
     embeddings = model.encode(sentences)
     np.save("embeddings.npy", embeddings)
     print("Database updated...")
@@ -20,7 +18,7 @@ def clean_sentences():
     return sentences
 
 
-def get_embeddings(sentences):
+def get_embeddings(sentences, model):
     print("Checking for updates...")
     try:
         embeddings = np.load("embeddings.npy")
@@ -29,10 +27,10 @@ def get_embeddings(sentences):
             return embeddings
         else:
             print("Update to database found. Importing...")
-            return create_embeddings()
+            return create_embeddings(sentences, model)
     except FileNotFoundError:
         print("No database found. Importing...")
-        return create_embeddings()
+        return create_embeddings(sentences, model)
 
 
 def get_cossim(my_embedding, embeddings, sentences):
@@ -48,25 +46,34 @@ def get_cossim(my_embedding, embeddings, sentences):
     return final_winners
 
 
-def main():
-    # load our Sentence Transformers model pre trained!!
+def initialize():
     model = SentenceTransformer('all-MiniLM-L6-v2')
     sentences = clean_sentences()
-    embeddings = get_embeddings(sentences)
-    while True:
-        query = input("Enter prompt: ")
-        if len(query.split(" ")) > 2:
-            my_embedding = model.encode(query)
+    embeddings = get_embeddings(sentences, model)
+    return model, sentences, embeddings
 
-            final_winners = get_cossim(my_embedding, embeddings, sentences)
-            if float(final_winners[0][1]) > 0.6:
-                print("Prompt is malicious")
-            else:
-                print("Prompt is not malicious")
-            print(f'\nScore :   {final_winners[0][1]}')
-            print(f'\nSentence :   {final_winners[0][0]}')
+
+def similarity(query, model, sentences, embeddings):
+    if len(query.split(" ")) > 2:
+        my_embedding = model.encode(query)
+
+        final_winners = get_cossim(my_embedding, embeddings, sentences)
+        if float(final_winners[0][1]) > 0.6:
+            print("Prompt is malicious")
         else:
             print("Prompt is not malicious")
+        print(f'\nScore :   {final_winners[0][1]}')
+        print(f'\nSentence :   {final_winners[0][0]}')
+    else:
+        print("Prompt is not malicious")
+
+
+def main():
+    # load our Sentence Transformers model pre trained!!
+    model, sentences, embeddings = initialize()
+    while True:
+        query = input("Enter prompt: ")
+        similarity(query, model, sentences, embeddings)
 
 
 if __name__ == "__main__":
