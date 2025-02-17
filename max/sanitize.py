@@ -63,7 +63,8 @@ def sanitize_input(user_input: str, max_length: int = 256) -> dict:
     Detects input context, applies the appropriate sanitization, and returns a dictionary with:
     - category: The detected category (html, sql, shell, non-malicious, invisible_unicode)
     - sanitized_output: The sanitized (or original) input string.
-    - decoded_hidden_message (if applicable).
+    - decoded_hidden_message: If applicable, the decoded text.
+    - decoded_category: Category of the decoded hidden text (if any).
     """
 
     # Detect context automatically
@@ -90,13 +91,18 @@ def sanitize_input(user_input: str, max_length: int = 256) -> dict:
 
     # Decode invisible Unicode if detected
     decoded_hidden_message = ""
+    decoded_category = None
     if context == "invisible_unicode":
         decoded_hidden_message = detect_and_decode_invisible_unicode(user_input)
+        if decoded_hidden_message:
+            # Run the decoded message through the detection system again
+            decoded_category = detect_context(decoded_hidden_message)
 
     return {
         "category": context,
         "sanitized_output": sanitized,
-        "decoded_hidden_message": decoded_hidden_message
+        "decoded_hidden_message": decoded_hidden_message,
+        "decoded_category": decoded_category
     }
 
 
@@ -109,7 +115,8 @@ if __name__ == "__main__":
         "Normal text with no attacks.",  # Non-malicious
         "chmod 777 /etc/passwd",  # Shell Injection
         "Safe input without special characters.",  # Non-malicious
-        "😀󠁩󠀠󠁡󠁭󠀠󠁡󠁮󠀠󠁩󠁤󠁩󠁯󠁴"  # Hidden binary message using zero-width encoding
+        "😀\u200B\u200C\u200B\u200B\u200C\u200B\u200C",  # Hidden binary message using zero-width encoding
+        "😀󠁄󠁒󠁏󠁐󠀠󠁔󠁁󠁂󠁌󠁅󠀠󠁵󠁳󠁥󠁲󠁳"  # Hidden SQL Injection
     ]
 
     for test in test_inputs:
@@ -117,6 +124,9 @@ if __name__ == "__main__":
         print(f"Input: {repr(test)}")
         print(f"Category: {result['category']}")
         print(f"Sanitized Output: {repr(result['sanitized_output'])}")
+
         if result["decoded_hidden_message"]:
             print(f"Decoded Hidden Message: {repr(result['decoded_hidden_message'])}")
+            print(f"Decoded Hidden Category: {result['decoded_category']}")
+
         print("-" * 80)
