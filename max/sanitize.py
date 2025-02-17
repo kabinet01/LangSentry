@@ -3,11 +3,25 @@ import re
 import html
 import shlex
 
+# Unicode zero-width and tag characters
+ZERO_WIDTH_CHARS = {
+    '\u200B': '0',  # Zero-width space
+    '\u200C': '1',  # Zero-width non-joiner
+    '\u200D': '1',  # Zero-width joiner
+    '\uFEFF': '',   # Zero-width no-break space (BOM)
+}
+
+TAG_CHARACTER_OFFSET = 0xE0000  # Unicode tag characters start at U+E0000
+
 def detect_context(user_input: str) -> str:
     """
     Automatically detects the context of an input based on its contents.
-    Returns one of: 'html', 'sql', 'shell', or 'non-malicious'.
+    Returns one of: 'html/javascript', 'sql', 'shell', 'non-malicious', or 'invisible_unicode'.
     """
+
+    # Detect Invisible Unicode Encoding (Zero-width or Tag Characters)
+    if any(char in ZERO_WIDTH_CHARS or 0xE0000 <= ord(char) <= 0xE007F for char in user_input):
+        return "invisible_unicode"
 
     # Detect HTML/XSS attack patterns
     if re.search(r'(?i)<script|onerror=|<iframe|javascript:', user_input):
@@ -21,14 +35,35 @@ def detect_context(user_input: str) -> str:
     if re.search(r'[\$`;&|><]', user_input) or re.search(r'(?i)\b(rm|chmod|chown|wget|curl|eval|exec|system)\b', user_input):
         return "shell"
 
-    # If no specific attack pattern is found, classify as 'non-malicious'
     return "non-malicious"
+
+
+def detect_and_decode_invisible_unicode(user_input: str) -> str:
+    """
+    Detects and decodes hidden Unicode characters encoded using Zero-width or Tag Unicode encoding.
+    Returns the decoded hidden message if found, otherwise an empty string.
+    """
+
+    # Detect and decode zero-width Unicode encoding
+    if any(char in ZERO_WIDTH_CHARS for char in user_input):
+        binary_string = ''.join(ZERO_WIDTH_CHARS.get(char, '') for char in user_input)
+        decoded_chars = [chr(int(binary_string[i:i+8], 2)) for i in range(0, len(binary_string), 8)]
+        return ''.join(decoded_chars)
+
+    # Detect and decode Unicode tag characters
+    elif any(0xE0000 <= ord(char) <= 0xE007F for char in user_input):
+        decoded_text = ''.join(chr(ord(char) - TAG_CHARACTER_OFFSET) for char in user_input if 0xE0000 <= ord(char) <= 0xE007F)
+        return decoded_text
+
+    return ""  # No hidden message found
+
 
 def sanitize_input(user_input: str, max_length: int = 256) -> dict:
     """
     Detects input context, applies the appropriate sanitization, and returns a dictionary with:
-    - category: The detected category (html, sql, shell, non-malicious)
+    - category: The detected category (html, sql, shell, non-malicious, invisible_unicode)
     - sanitized_output: The sanitized (or original) input string.
+    - decoded_hidden_message (if applicable).
     """
 
     # Detect context automatically
@@ -53,14 +88,17 @@ def sanitize_input(user_input: str, max_length: int = 256) -> dict:
     elif context == "shell":
         sanitized = shlex.quote(sanitized)  # Escape shell input
 
-    # If input is non-malicious, return it as is
-    if context == "non-malicious":
-        sanitized = user_input
+    # Decode invisible Unicode if detected
+    decoded_hidden_message = ""
+    if context == "invisible_unicode":
+        decoded_hidden_message = detect_and_decode_invisible_unicode(user_input)
 
     return {
         "category": context,
-        "sanitized_output": sanitized
+        "sanitized_output": sanitized,
+        "decoded_hidden_message": decoded_hidden_message
     }
+
 
 # Example Usage
 if __name__ == "__main__":
@@ -70,7 +108,8 @@ if __name__ == "__main__":
         "rm -rf /",  # Shell Command Injection
         "Normal text with no attacks.",  # Non-malicious
         "chmod 777 /etc/passwd",  # Shell Injection
-        "Safe input without special characters."  # Non-malicious
+        "Safe input without special characters.",  # Non-malicious
+        "😀󠁩󠀠󠁡󠁭󠀠󠁡󠁮󠀠󠁩󠁤󠁩󠁯󠁴"  # Hidden binary message using zero-width encoding
     ]
 
     for test in test_inputs:
@@ -78,4 +117,6 @@ if __name__ == "__main__":
         print(f"Input: {repr(test)}")
         print(f"Category: {result['category']}")
         print(f"Sanitized Output: {repr(result['sanitized_output'])}")
+        if result["decoded_hidden_message"]:
+            print(f"Decoded Hidden Message: {repr(result['decoded_hidden_message'])}")
         print("-" * 80)
