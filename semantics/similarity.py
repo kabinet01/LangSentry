@@ -62,14 +62,14 @@ def similarity(query, model, sentences, embeddings):
         my_embeddings = model.encode(chunks)
 
         final_winners = get_cossim(my_embeddings, embeddings, sentences)
-        if float(final_winners[0][1]) > 0.6:
-            print("Prompt is malicious")
-        else:
-            print("Prompt is not malicious")
         print(f'\nScore :   {final_winners[0][1]}')
         print(f'\nSentence :   {final_winners[0][0]}')
+        if float(final_winners[0][1]) > 0.6:
+            return True
+        else:
+            return False
     else:
-        print("Prompt is not malicious")
+        return False
 
 
 def main():
@@ -77,7 +77,10 @@ def main():
     model, sentences, embeddings = initialize()
     while True:
         query = input("Enter prompt: ")
-        similarity(query, model, sentences, embeddings)
+        if similarity(query, model, sentences, embeddings):
+            print("Prompt is malicious")
+        else:
+            print("Prompt is not malicious")
 
 
 if __name__ == "__main__":
