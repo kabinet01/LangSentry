@@ -2,4 +2,5 @@
 from .analyze import some_function
 from .canary import generate_canary_token, add_canary_token, check_for_canary_leak
 from .misinformation import check_misinformation
+from .check_output import load_config, extract_entities, detect_anomalies, detect_sensitive_patterns, analyze_response
 __version__ = "0.1.0"
