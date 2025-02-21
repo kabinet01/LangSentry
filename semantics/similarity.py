@@ -15,7 +15,6 @@ def clean_sentences():
     df = pd.read_csv('malicious.csv')
     sentences = [sentence.lower().replace('br', '').replace('<', "").replace(">", "").replace('\\', "").replace('/', "")
                  for sentence in df.prompt]
-    print(len(sentences))
     return sentences
 
 
@@ -44,7 +43,7 @@ def get_cossim(my_embeddings, embeddings, sentences):
                 winners.append([sentences[i], each_val])
 
     final_winners = sorted(winners, key=lambda x: x[1], reverse=True)
-    print(final_winners[0:3])
+    # print(final_winners[0:3])
     return final_winners
 
 
@@ -62,8 +61,8 @@ def similarity(query, model, sentences, embeddings):
         my_embeddings = model.encode(chunks)
 
         final_winners = get_cossim(my_embeddings, embeddings, sentences)
-        print(f'\nScore :   {final_winners[0][1]}')
-        print(f'\nSentence :   {final_winners[0][0]}')
+        # print(f'\nScore :   {final_winners[0][1]}')
+        # print(f'\nSentence :   {final_winners[0][0]}')
         if float(final_winners[0][1]) > 0.6:
             return True
         else:
