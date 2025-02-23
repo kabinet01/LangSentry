@@ -21,7 +21,7 @@ def add_canary_token(prompt: str, canary_token: str = None) -> tuple[str, str]:
     """
     if canary_token is None:
         canary_token = generate_canary_token()
-    
+
     return (f"{canary_token} {prompt} {canary_token}", canary_token)
 
 
