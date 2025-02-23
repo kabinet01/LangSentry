@@ -65,6 +65,7 @@ def sanitize_input(user_input: str, max_length: int = 256) -> dict:
     - sanitized_output: The sanitized (or original) input string.
     - decoded_hidden_message: If applicable, the decoded text.
     - decoded_category: Category of the decoded hidden text (if any).
+    - final_output: The final result based on classification (original input or 'blocked - [category]').
     """
 
     # Detect context automatically
@@ -98,11 +99,18 @@ def sanitize_input(user_input: str, max_length: int = 256) -> dict:
             # Run the decoded message through the detection system again
             decoded_category = detect_context(decoded_hidden_message)
 
+    # Determine final output
+    if context == "non-malicious":
+        final_output = user_input  # Return original input if safe
+    else:
+        final_output = f"blocked - {context}"
+
     return {
         "category": context,
         "sanitized_output": sanitized,
         "decoded_hidden_message": decoded_hidden_message,
-        "decoded_category": decoded_category
+        "decoded_category": decoded_category,
+        "final_output": final_output
     }
 
 
@@ -115,8 +123,8 @@ if __name__ == "__main__":
         "Normal text with no attacks.",  # Non-malicious
         "chmod 777 /etc/passwd",  # Shell Injection
         "Safe input without special characters.",  # Non-malicious
-        "😀\u200B\u200C\u200B\u200B\u200C\u200B\u200C",  # Hidden binary message using zero-width encoding
-        "😀󠁄󠁒󠁏󠁐󠀠󠁔󠁁󠁂󠁌󠁅󠀠󠁵󠁳󠁥󠁲󠁳"  # Hidden SQL Injection
+        "😀󠁩󠀠󠁡󠁭󠀠󠁨󠁡󠁰󠁰󠁹",  # Hidden binary message using zero-width encoding
+        "😀"  # Normal Unicode character
     ]
 
     for test in test_inputs:
@@ -129,4 +137,5 @@ if __name__ == "__main__":
             print(f"Decoded Hidden Message: {repr(result['decoded_hidden_message'])}")
             print(f"Decoded Hidden Category: {result['decoded_category']}")
 
+        print(f"Final Output: {repr(result['final_output'])}")
         print("-" * 80)
