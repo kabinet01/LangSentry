@@ -1,11 +1,23 @@
 from setuptools import setup, find_packages
+import os
+import subprocess
+
+def post_install():
+    subprocess.run(["python", "langsentry/post_install.py"], check=True)
 
 setup(
     name="langsentry",
     version="0.1.0",
     packages=find_packages(),
     install_requires=[
-        # List your dependencies here
+        "spacy",
+        "google-genai",
+        "pyperclip",
+        "sentence_transformers",
+        "pandas",
+        "numpy",
+        
+        
     ],
     author="Edwin, Keith, Max, Tim, Zeph",
     author_email="NIL",

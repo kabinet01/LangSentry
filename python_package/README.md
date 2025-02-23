@@ -2,7 +2,7 @@
 
 ## Installation
 
-```pip install mylangsentry```
+```pip install -e .```
 
 ## Usage
 
