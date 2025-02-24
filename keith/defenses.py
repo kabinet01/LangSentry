@@ -61,15 +61,8 @@ def change_output(data):
     for label, pattern in SENSITIVE_PATTERNS.items():
         match = re.search(pattern, data, flags=re.IGNORECASE)
         if match:
-            print(f"[DEBUG] {label} detected - Poisoning now...")
-            if label in ["password", "api_key"]:
-                secret = match.group("secret")
-                corrupted = corrupt_string(secret)
-                return corrupted
-            else:
-                corrupted = corrupt_string(match.group())
-                return corrupted
-    print("[DEBUG] Sensitive data detected, poisoning now...")
+            sensitive_data = match.group()  # extract the matched substring
+            return corrupt_string(sensitive_data)
     return corrupt_string(data)
 
 def is_dangerous(output):
@@ -111,7 +104,7 @@ class LangSentry:
         output = self.llm.generate(input_text)
         output = self_heal_output(output)
 
-        regex_flag, _, _ = detect_sensitive_patterns(output)
+        regex_flag, _ = detect_sensitive_patterns(output)
         if regex_flag:
             print("[DEBUG] Regex check indicates malicious content. Triggering safe output.")
             output = change_output(output)
