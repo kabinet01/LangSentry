@@ -2,6 +2,7 @@ import random
 import uuid
 import re
 import spacy
+from langsentry.check_output import SENSITIVE_PATTERNS, BLACKLIST_PATTERNS, detect_sensitive_patterns
 from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
 from test import DummyLLM, test_inputs
 
@@ -10,22 +11,6 @@ ner_pipeline = pipeline("ner", model="dslim/bert-base-NER")
 summarizer_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
 summary_model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
 classifier = pipeline("text-classification", model="./fine_tuned_roberta_mnli", tokenizer="./fine_tuned_roberta_mnli")
-
-# Sensitive data detection patterns.
-SENSITIVE_PATTERNS = {
-    "password": r"(?i)\b(?:pass(?:word)?|pwd)\b(?:\s+(?:is|:))?\s+(?P<secret>(?=.*[A-Za-z])(?=.*[\W_])\S+)",
-    "account_number": r"\b\d{10,}\b",
-    "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
-    "ssn": r"\b\d{3}-\d{2}-\d{4}\b",
-    "api_key": r"(?i)\b(?:api|key|token)\b\s*[:=]?\s*(?P<secret>[\w-]{10,})\b"
-}
-
-# Blacklisted phrases (Jailbreak detection)
-BLACKLIST_PATTERNS = [
-    r"(?i)system_prompt\s*=",
-    r"(?i)do anything now",
-    r"base64[a-zA-Z0-9+/=]{20,}",
-]
 
 def corrupt_string(s, digit_rate=0.6, letter_rate=0.2, special_sub_rate=0.5):
     """
@@ -69,22 +54,6 @@ def poison_sensitive_info(text):
         text = re.sub(pattern, replace_match, text, flags=re.IGNORECASE)
     return text
 
-def extract_entities(text):
-    detected_entities = {}
-    ner_results = ner_pipeline(text)
-    for entity in ner_results:
-        if entity["entity"] in ["B-ORG", "I-ORG", "B-PER", "I-PER"]:
-            detected_entities[entity["entity"]] = entity["word"]
-    return detected_entities
-
-def detect_sensitive_patterns(text):
-    for label, pattern in SENSITIVE_PATTERNS.items():
-        match = re.search(pattern, text, flags=re.IGNORECASE)
-        if match:
-            print(f"[DEBUG] Matched pattern for {label}: {match.group()}")
-            return True, label, match
-    return False, None, None
-
 def change_output(data):
     """
     If sensitive data is found in the output, extract and poison it.
@@ -119,15 +88,6 @@ def honeypot_data(input_text):
         return f"Fake API Key: {uuid.uuid4()}"
     return None
 
-def check_data(data):
-    regex_detected, category, _ = detect_sensitive_patterns(data)
-    if regex_detected:
-        return True, f"Regex pattern match: {category}"
-    entities = extract_entities(data)
-    if entities:
-        return True, f"Sensitive entities detected: {entities}"
-    return False, None
-
 def classify_output(output):
     prompt = (
         "You are a security administrator tasked with detecting any exposure of internal or confidential data. "
@@ -144,7 +104,6 @@ class LangSentry:
         self.llm = llm
 
     def process_input(self, input_text):
-        # First, check for honeypot triggers.
         honeypot = honeypot_data(input_text)
         if honeypot:
             return honeypot
@@ -165,9 +124,6 @@ class LangSentry:
                 print("[DEBUG] Both checks indicate benign output. Returning original output.")
         return output
 
-from test import DummyLLM, test_inputs
-
-# Example usage:
 llm = DummyLLM()
 sentry = LangSentry(llm)
 
