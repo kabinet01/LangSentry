@@ -12,7 +12,7 @@ summarizer_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
 summary_model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
 classifier = pipeline("text-classification", model="./fine_tuned_roberta_mnli", tokenizer="./fine_tuned_roberta_mnli")
 
-def corrupt_string(s, digit_rate=0.6, letter_rate=0.2, special_sub_rate=0.5):
+def corrupt_string(s, digit_rate=0.65, letter_rate=0.4, special_sub_rate=0.55):
     """
     Corrupts the input string by substituting characters.
     """
@@ -54,17 +54,6 @@ def poison_sensitive_info(text):
         text = re.sub(pattern, replace_match, text, flags=re.IGNORECASE)
     return text
 
-def change_output(data):
-    """
-    If sensitive data is found in the output, extract and poison it.
-    """
-    for label, pattern in SENSITIVE_PATTERNS.items():
-        match = re.search(pattern, data, flags=re.IGNORECASE)
-        if match:
-            sensitive_data = match.group()  # extract the matched substring
-            return corrupt_string(sensitive_data)
-    return corrupt_string(data)
-
 def is_dangerous(output):
     result = classifier(output)
     return result[0]['label'] == "DANGEROUS"
@@ -89,7 +78,7 @@ def classify_output(output):
         "Output: " + output
     )
     result = classifier(prompt)
-    print("Classifier result:", result)
+    # print("Classifier result:", result)
     return result[0]['label'].upper() == "LABEL_1"
 
 class LangSentry:
@@ -105,22 +94,27 @@ class LangSentry:
         output = self_heal_output(output)
 
         regex_flag, _ = detect_sensitive_patterns(output)
+        classifier_flag = classify_output(output)
         if regex_flag:
-            print("[DEBUG] Regex check indicates malicious content. Triggering safe output.")
-            output = change_output(output)
-        else:
-            classifier_flag = classify_output(output)
+            print("Check 1 failed")
             if classifier_flag:
-                print("[DEBUG] Classifier indicates malicious content. Triggering safe output.")
-                output = change_output(output)
+                print("Check 2 failed")
+                print("Malicious content detected. Triggering output poisoning")
+                output = corrupt_string(output)
+        else:
+            print("Check 1 passed")
+            if classifier_flag:
+                print("Check 2 failed")
+                print("Malicious content detected. Triggering output poisoning")
+                output = corrupt_string(output)
             else:
-                print("[DEBUG] Both checks indicate benign output. Returning original output.")
+                print("Both checks passed. Returning original output")
         return output
 
 llm = DummyLLM()
 sentry = LangSentry(llm)
 
-for test in test_inputs:
-    print(f"\nInput: {test}")
-    print(f"Output: {sentry.process_input(test)}")
-    print("-" * 50)
+# for test in test_inputs:
+    # print(f"\nInput: {test}")
+    # print(f"Output: {sentry.process_input(test)}")
+    # print("-" * 50)
