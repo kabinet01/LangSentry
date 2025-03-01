@@ -14,7 +14,7 @@ summarizer_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
 summary_model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
 classifier = pipeline("text-classification", model="./fine_tuned_roberta_mnli", tokenizer="./fine_tuned_roberta_mnli")
 
-# Set up text-generation pipelines (using GPT-2; try larger models if needed)
+# Set up text-generation pipelines (using GPT-2 as an example)
 name_generator = pipeline("text-generation", model="gpt2")
 address_generator = pipeline("text-generation", model="gpt2")
 domain_generator = pipeline("text-generation", model="gpt2")
@@ -40,15 +40,43 @@ def generate_valid_output(generator, prompt, pattern, max_new_tokens, default, m
     return default
 
 def generate_fake_name():
-    prompt = "Output a realistic full name in the format 'Firstname Lastname': "
-    pattern = r'^[A-Z][a-z]+ [A-Z][a-z]+$'
-    return generate_valid_output(name_generator, prompt, pattern, max_new_tokens=10, default="John Doe")
+    prompt = ("Output only a realistic full name from any culture, written in English. "
+              "Do not include any extra text, numbers, or URLs. "
+              "For example: Mary Smith, Rajesh Kumar, Mei Ling, Hiro Tanaka, Hans Mueller, Kim Min.\n")
+    pattern = r'^[A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)+$'
+    result = name_generator(
+        prompt,
+        max_new_tokens=15,
+        truncation=True,
+        pad_token_id=50256,
+        num_return_sequences=1,
+        do_sample=True,
+        temperature=0.7
+    )[0]['generated_text']
+    
+    print("DEBUG raw output:", result)
+    text = result[len(prompt):].strip().split("\n")[0]
+    text = re.sub(r'http\S+', '', text).strip()
+    
+    match = re.match(pattern, text)
+    if match:
+        extracted_name = match.group(0).strip()
+        print("DEBUG: extracted name:", extracted_name)
+        return extracted_name
+    else:
+        words = text.split()
+        valid_words = [w for w in words if w[0].isupper() and len(w) > 1 and not re.search(r'\d', w)]
+        if len(valid_words) >= 2:
+            fallback_name = " ".join(valid_words[:2])
+            print("DEBUG: fallback name from words:", fallback_name)
+            return fallback_name
+        print("DEBUG: using default name: John Doe")
+        return "John Doe"
 
 def generate_fake_org():
     prompt = "Output a realistic company name: "
-    # This pattern accepts one or two words that start with a capital letter and contain only letters/numbers.
-    pattern = r'^[A-Z][a-zA-Z0-9]+( [A-Z][a-zA-Z0-9]+)?$'
-    return generate_valid_output(name_generator, prompt, pattern, max_new_tokens=5, default="Example Corp")
+    pattern = r'^[A-Z][A-Za-z0-9]+( [A-Z][A-Za-z0-9]+)?$'
+    return generate_valid_output(name_generator, prompt, pattern, max_new_tokens=5, default="ExampleCorp")
 
 def generate_fake_location():
     prompt = "Output a realistic city name: "
@@ -63,23 +91,40 @@ def generate_fake_address():
 def generate_fake_email():
     fake_name = generate_fake_name().lower().replace(" ", ".")
     prompt = "Output a realistic email domain: "
-    pattern = r'^[a-z]+\.[a-z]{2,}$'
+    pattern = r'^[a-z]+\.(com|net|org)$'
     domain = generate_valid_output(domain_generator, prompt, pattern, max_new_tokens=5, default="gmail.com")
     return f"{fake_name}@{domain}"
 
 def generate_fake_credit_card():
-    """
-    Generates a fake credit card number in the format XXXX-XXXX-XXXX-XXXX.
-    For simplicity, this doesn't implement Luhn's algorithm.
-    """
-    digits = [str(random.randint(0, 9)) for _ in range(16)]
-    cc = "-".join("".join(digits[i:i+4]) for i in range(0, 16, 4))
-    return cc
+    card_type = random.choice(["Visa", "MasterCard", "American Express"])
+    if card_type == "Visa":
+        # For Visa
+        second_digit = str(random.randint(2,6))
+        prefix = "4" + second_digit + "".join(str(random.randint(0,9)) for _ in range(4))
+        remaining_length = 16 - len(prefix)
+        number = prefix + "".join(str(random.randint(0,9)) for _ in range(remaining_length))
+        formatted = "-".join(number[i:i+4] for i in range(0, 16, 4))
+        return formatted
+    elif card_type == "MasterCard":
+        # MasterCard 
+        start = str(random.randint(51, 55))
+        prefix = start + "".join(str(random.randint(0,9)) for _ in range(4))
+        remaining_length = 16 - len(prefix)
+        number = prefix + "".join(str(random.randint(0,9)) for _ in range(remaining_length))
+        formatted = "-".join(number[i:i+4] for i in range(0, 16, 4))
+        return formatted
+    else:  # Amex
+        start = random.choice(["34", "37"])
+        prefix = start + "".join(str(random.randint(0,9)) for _ in range(4))
+        remaining_length = 15 - len(prefix)
+        number = prefix + "".join(str(random.randint(0,9)) for _ in range(remaining_length))
+        formatted = number[:4] + " " + number[4:10] + " " + number[10:]
+        return formatted
 
 def generate_fake_phone():
     """
     Generates a realistic phone number with a country code.
-    Example: +1 555-123-4567
+    Example format: +1 555-123-4567
     """
     country_codes = ["+1", "+44", "+61", "+49"]
     country_code = random.choice(country_codes)
@@ -155,10 +200,10 @@ def segregate_sensitive_info(text):
     address_pattern = r'\b\d+\s+[A-Z][a-zA-Z ]+\b'
     text = re.sub(address_pattern, lambda m: generate_fake_address(), text)
 
-    phone_pattern = r'\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
+    phone_pattern = r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
     text = re.sub(phone_pattern, lambda m: generate_fake_phone(), text)
 
-    cc_pattern = r'\b(?:\d{4}-){3}\d{4}\b'
+    cc_pattern = r'\b(?:\d{4}-){3}\d{4}\b|\b\d{4} \d{6} \d{5}\b'
     text = re.sub(cc_pattern, lambda m: generate_fake_credit_card(), text)
 
     doc = nlp(text)
