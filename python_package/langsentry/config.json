@@ -1,0 +1,37 @@
+{
+    "strictness": "medium",
+    "entity_labels": {
+        "flag": [
+            "PERSON",
+            "ORG",
+            "GPE",
+            "MONEY",
+            "DATE",
+            "CARDINAL"
+        ],
+        "ignore": [
+            "USER_HANDLE",
+            "SCREEN_NAME"
+        ]
+    },
+    "sensitive_patterns": {
+        "password": {
+            "regex": "(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+]{12,}",
+            "description": "Must contain letters, numbers, and special characters (min 12 chars)"
+        },
+        "account_number": {
+            "regex": "\\b\\d{12,}\\b",
+            "description": "Bank account numbers must be at least 12 digits"
+        },
+        "email": {
+            "regex": "\\b[A-Za-z0-9._%+-]+@securehospital\\.com\\b",
+            "description": "Only securehospital.com emails are valid"
+        },
+        "ssn": {
+            "regex": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+            "description": "US Social Security Number format"
+        }
+    },
+    "whitelist": [],
+    "blacklist_patterns": []
+}
