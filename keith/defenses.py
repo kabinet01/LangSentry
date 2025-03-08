@@ -5,7 +5,6 @@ import spacy
 from datetime import datetime
 from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
 from langsentry.check_output import DEFAULT_CONFIG, INDUSTRY_PROFILES, load_config, analyze_response
-# from test import DummyLLM, test_inputs
 
 # Initialize spaCy and transformers pipelines
 nlp = spacy.load("en_core_web_sm")
@@ -252,14 +251,3 @@ class LangSentry:
         else:
             print("All checks passed. Returning original output.")
         return output
-
-# Initialize the dummy LLM and LangSentry.
-# llm = DummyLLM()
-# sentry = LangSentry(llm)
-
-# Uncomment the lines below to run your test cases:
-# for test in test_inputs:
-#     print(f"\nInput: {test}")
-#     print(f"Output (raw): {sentry.llm.generate(test)}")
-#     print(f"Output (defended): {sentry.process_input(test)}")
-#     print("-" * 50)
