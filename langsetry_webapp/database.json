@@ -1,0 +1,116 @@
+{
+    "patients": [
+        {
+            "id": "P001",
+            "name": "John Smith",
+            "age": 42,
+            "email": "john.smith@email.com",
+            "conditions": ["Type 2 Diabetes", "Hypertension"],
+            "medications": ["Metformin 500mg", "Lisinopril 10mg"],
+            "doctor": "Dr. Emily Chen",
+            "insurance": "BlueShield Gold Plan",
+            "last_visit": "2025-02-15"
+        },
+        {
+            "id": "P002",
+            "name": "Sarah Johnson",
+            "age": 35,
+            "email": "sarah.j@email.com",
+            "conditions": ["Asthma", "Seasonal Allergies"],
+            "medications": ["Albuterol Inhaler", "Cetirizine 10mg"],
+            "doctor": "Dr. Michael Rodriguez",
+            "insurance": "HealthPlus Premium",
+            "last_visit": "2025-02-28"
+        },
+        {
+            "id": "P003",
+            "name": "Robert Williams",
+            "age": 68,
+            "email": "rwilliams@email.com",
+            "conditions": ["Coronary Artery Disease", "Arthritis"],
+            "medications": ["Atorvastatin 20mg", "Acetaminophen 500mg PRN"],
+            "doctor": "Dr. Emily Chen",
+            "insurance": "Medicare Plus",
+            "last_visit": "2025-03-02"
+        },
+        {
+            "id": "P004",
+            "name": "Maria Garcia",
+            "age": 29,
+            "email": "mgarcia@email.com",
+            "conditions": ["Migraine", "Anxiety"],
+            "medications": ["Sumatriptan 50mg", "Escitalopram 10mg"],
+            "doctor": "Dr. James Wilson",
+            "insurance": "HealthPlus Basic",
+            "last_visit": "2025-02-10"
+        },
+        {
+            "id": "P005",
+            "name": "David Lee",
+            "age": 51,
+            "email": "dlee@email.com",
+            "conditions": ["Hyperlipidemia", "GERD"],
+            "medications": ["Rosuvastatin 10mg", "Omeprazole 20mg"],
+            "doctor": "Dr. Michael Rodriguez",
+            "insurance": "BlueShield Silver Plan",
+            "last_visit": "2025-03-05"
+        }
+    ],
+    "doctors": [
+        {
+            "id": "D001",
+            "name": "Dr. Emily Chen",
+            "specialty": "Endocrinology",
+            "patients": ["P001", "P003"],
+            "availability": "Mon, Wed, Fri"
+        },
+        {
+            "id": "D002",
+            "name": "Dr. Michael Rodriguez",
+            "specialty": "Pulmonology",
+            "patients": ["P002", "P005"],
+            "availability": "Tue, Thu"
+        },
+        {
+            "id": "D003",
+            "name": "Dr. James Wilson",
+            "specialty": "Neurology",
+            "patients": ["P004"],
+            "availability": "Mon, Thu, Fri"
+        }
+    ],
+    "common_conditions": {
+        "Type 2 Diabetes": {
+            "description": "A chronic condition affecting how the body processes blood sugar.",
+            "symptoms": ["Increased thirst", "Frequent urination", "Fatigue", "Blurred vision"],
+            "treatment_options": ["Lifestyle changes", "Oral medications", "Insulin therapy"]
+        },
+        "Hypertension": {
+            "description": "High blood pressure that can lead to heart disease and stroke.",
+            "symptoms": ["Usually asymptomatic", "Headaches in severe cases"],
+            "treatment_options": ["Dietary changes", "Regular exercise", "Medications"]
+        },
+        "Asthma": {
+            "description": "A condition causing airways to narrow and swell, producing extra mucus.",
+            "symptoms": ["Shortness of breath", "Chest tightness", "Wheezing", "Coughing"],
+            "treatment_options": ["Inhalers", "Oral medications", "Avoiding triggers"]
+        }
+    },
+    "medications": {
+        "Metformin": {
+            "uses": ["Type 2 Diabetes"],
+            "side_effects": ["Nausea", "Diarrhea", "Stomach upset"],
+            "interactions": ["Alcohol", "Certain contrast dyes"]
+        },
+        "Lisinopril": {
+            "uses": ["Hypertension", "Heart failure"],
+            "side_effects": ["Dizziness", "Cough", "Headache"],
+            "interactions": ["Potassium supplements", "NSAIDs"]
+        },
+        "Albuterol": {
+            "uses": ["Asthma", "COPD"],
+            "side_effects": ["Tremor", "Nervousness", "Increased heart rate"],
+            "interactions": ["Beta-blockers", "Certain diuretics"]
+        }
+    }
+}

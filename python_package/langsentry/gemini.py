@@ -1,7 +1,7 @@
 from google import genai
 from google.genai import types
 
-from edwin.config import MAKERSUITE_API_KEY
+from config import MAKERSUITE_API_KEY
 
 client = genai.Client(api_key=MAKERSUITE_API_KEY)
 

@@ -1,68 +1,55 @@
 from flask import Flask, render_template, request, jsonify
 from google import genai
 from google.genai import types
-from config import MAKERSUITE_API_KEY
+from dotenv import load_dotenv
 import markdown2
 import os
 import re
 import html
-import json
+
 from langsentry import add_canary_token, check_for_canary_leak, check_misinformation
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 
 # Configure Gemini API
-client = genai.Client(api_key=MAKERSUITE_API_KEY)
+client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
 
-# Simulated healthcare database
-with open('database.json', 'r') as f:
-    HEALTHCARE_DATABASE = json.load(f)
-
-# Define interactive system prompt for HealthBot
-with open('system_prompt.txt', 'r') as f:
-    SYSTEM_PROMPT = f.read()
+# Define system prompt
+SYSTEM_PROMPT = """You are a helpful and friendly AI assistant. 
+You provide clear, accurate, and engaging responses while maintaining a conversational tone.
+You should be concise but informative in your responses.
+You can use markdown formatting in your responses for better readability."""
 
 
 def prompt_gemini(user_message, system_prompt=SYSTEM_PROMPT):
-    """Base function to get response from Gemini with HealthBot context"""
-    formatted_prompt = system_prompt.format(
-        database=json.dumps(HEALTHCARE_DATABASE, indent=2))
-
+    """Base function to get response from Gemini"""
     response = client.models.generate_content(
         model="gemini-2.0-flash",
-        config=types.GenerateContentConfig(
-            system_instruction=formatted_prompt),
+        config=types.GenerateContentConfig(system_instruction=system_prompt),
         contents=[user_message],
     )
     return response
 
 
+
 def default_chat(message):
-    """Default chat mode - direct interaction with Gemini HealthBot"""
+    """Default chat mode - direct interaction with Gemini"""
     response = prompt_gemini(message)
     return response.text
 
 
 def input_sanitization(message):
-    """Deliberately vulnerable input sanitization for presentation purposes"""
-    # Check for the langsentry keyword
-    if "langsentry" in message.lower():
-        return "LangSentry triggered in input sanitization mode. Running security protocol override..."
-
-    # This function is DELIBERATELY vulnerable to prompt injection
-    # DO NOT USE IN PRODUCTION
-    # No actual sanitization is performed
-    # Simply pass the message directly to the model
+    """Analyze input for security concerns"""
+    # Basic security checks
     response = prompt_gemini(message)
     return response.text
 
 
 def semantic_analysis(message):
     """Analyze semantic meaning and structure"""
-    # Check for the langsentry keyword
-    if "langsentry" in message.lower():
-        return "LangSentry triggered in semantic analysis mode. Initiating deep content inspection..."
-
     response = prompt_gemini(message)
     return response.text
 
@@ -78,6 +65,7 @@ def canary_token_detection(message):
         return response.text
 
 
+
 def misinformation_detection(message):
     """Analyze content for potential misinformation"""
     response = prompt_gemini(message)
@@ -86,10 +74,6 @@ def misinformation_detection(message):
 
 def output_manipulation(message):
     """Analyze for potential data/output manipulation"""
-    # Check for the langsentry keyword
-    if "langsentry" in message.lower():
-        return "LangSentry triggered in output manipulation mode. Checking for response tampering..."
-
     response = prompt_gemini(message)
     return response.text
 
