@@ -1,0 +1,33 @@
+{
+    "strictness": "medium",
+    "entity_labels": {
+        "flag": [
+            "PERSON",
+            "ORG",
+            "GPE",
+            "MONEY",
+            "DATE",
+            "CARDINAL"
+        ],
+        "ignore": [
+            "USER_HANDLE",
+            "SCREEN_NAME"
+        ]
+    },
+    "sensitive_patterns": {
+        "password": {
+            "regex": "(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+]{12,}"
+        },
+        "account_number": {
+            "regex": "\\b\\d{12,}\\b"
+        },
+        "email": {
+            "regex": "\\b[A-Za-z0-9._%+-]+@securehospital\\.com\\b"
+        },
+        "ssn": {
+            "regex": "\\b\\d{3}-\\d{2}-\\d{4}\\b"
+        }
+    },
+    "whitelist": [],
+    "blacklist_patterns": []
+}
