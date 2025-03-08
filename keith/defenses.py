@@ -4,15 +4,15 @@ import re
 import spacy
 from datetime import datetime
 from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
-from langsentry.check_output import SENSITIVE_PATTERNS, BLACKLIST_PATTERNS, analyze_response
-from test import DummyLLM, test_inputs
+from langsentry.check_output import DEFAULT_CONFIG, INDUSTRY_PROFILES, load_config, analyze_response
+# from test import DummyLLM, test_inputs
 
 # Initialize spaCy and transformers pipelines
 nlp = spacy.load("en_core_web_sm")
 ner_pipeline = pipeline("ner", model="dslim/bert-base-NER")
 summarizer_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
 summary_model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
-classifier = pipeline("text-classification", model="./fine_tuned_roberta_mnli", tokenizer="./fine_tuned_roberta_mnli")
+classifier = pipeline("text-classification", model="C:/ICT2214-Web-Security - New/LangSentry/keith/fine_tuned_roberta_mnli", tokenizer="C:/ICT2214-Web-Security - New/LangSentry/keith/fine_tuned_roberta_mnli")
 
 # Set up text-generation pipelines (using GPT-2 as an example)
 name_generator = pipeline("text-generation", model="gpt2")
@@ -54,7 +54,9 @@ def generate_fake_name():
         temperature=0.7
     )[0]['generated_text']
     
+    # Debug print for diagnosis
     print("DEBUG raw output:", result)
+    
     text = result[len(prompt):].strip().split("\n")[0]
     text = re.sub(r'http\S+', '', text).strip()
     
@@ -98,7 +100,6 @@ def generate_fake_email():
 def generate_fake_credit_card():
     card_type = random.choice(["Visa", "MasterCard", "American Express"])
     if card_type == "Visa":
-        # For Visa
         second_digit = str(random.randint(2,6))
         prefix = "4" + second_digit + "".join(str(random.randint(0,9)) for _ in range(4))
         remaining_length = 16 - len(prefix)
@@ -106,14 +107,13 @@ def generate_fake_credit_card():
         formatted = "-".join(number[i:i+4] for i in range(0, 16, 4))
         return formatted
     elif card_type == "MasterCard":
-        # MasterCard 
         start = str(random.randint(51, 55))
         prefix = start + "".join(str(random.randint(0,9)) for _ in range(4))
         remaining_length = 16 - len(prefix)
         number = prefix + "".join(str(random.randint(0,9)) for _ in range(remaining_length))
         formatted = "-".join(number[i:i+4] for i in range(0, 16, 4))
         return formatted
-    else:  # Amex
+    else:  # American Express
         start = random.choice(["34", "37"])
         prefix = start + "".join(str(random.randint(0,9)) for _ in range(4))
         remaining_length = 15 - len(prefix)
@@ -122,10 +122,6 @@ def generate_fake_credit_card():
         return formatted
 
 def generate_fake_phone():
-    """
-    Generates a realistic phone number with a country code.
-    Example format: +1 555-123-4567
-    """
     country_codes = ["+1", "+44", "+61", "+49"]
     country_code = random.choice(country_codes)
     area = random.randint(200, 999)
@@ -175,7 +171,7 @@ def corrupt_string(s, digit_rate=0.65, letter_rate=0.4, special_sub_rate=0.55):
     return "".join(result)
 
 def is_dangerous(output):
-    result = classifier(output)
+    result = classifier(output, truncation=True)
     return result[0]['label'] == "DANGEROUS"
 
 def self_heal_output(output):
@@ -185,27 +181,29 @@ def self_heal_output(output):
         return summarizer_tokenizer.decode(summary_ids[0], skip_special_tokens=True)
     return output
 
-def honeypot_data(input_text):
-    if any(re.search(pattern, input_text) for pattern in BLACKLIST_PATTERNS):
-        return f"Fake API Key: {uuid.uuid4()}"
+def honeypot_data(input_text, config):
+    for pattern in config.get("blacklist_patterns", []):
+        if re.search(pattern, input_text):
+            return f"Fake API Key: {uuid.uuid4()}"
     return None
 
-def segregate_sensitive_info(text):
+def segregate_sensitive_info(text, config):
+    # Replace emails.
     email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b'
     text = re.sub(email_pattern, lambda m: generate_fake_email(), text)
-
+    # Replace dates.
     date_pattern = r'\b(\d{1,2}/\d{1,2}/\d{4})\b'
     text = re.sub(date_pattern, lambda m: generate_fake_birthdate(), text)
-
+    # Replace addresses.
     address_pattern = r'\b\d+\s+[A-Z][a-zA-Z ]+\b'
     text = re.sub(address_pattern, lambda m: generate_fake_address(), text)
-
+    # Replace phone numbers.
     phone_pattern = r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
     text = re.sub(phone_pattern, lambda m: generate_fake_phone(), text)
-
+    # Replace credit card numbers.
     cc_pattern = r'\b(?:\d{4}-){3}\d{4}\b|\b\d{4} \d{6} \d{5}\b'
     text = re.sub(cc_pattern, lambda m: generate_fake_credit_card(), text)
-
+    # Replace entities using spaCy NER.
     doc = nlp(text)
     for ent in doc.ents:
         if ent.label_ == "PERSON":
@@ -214,40 +212,52 @@ def segregate_sensitive_info(text):
             text = text.replace(ent.text, generate_fake_org())
         elif ent.label_ == "GPE":
             text = text.replace(ent.text, generate_fake_location())
-
-    password_pattern = SENSITIVE_PATTERNS.get("password")
-    if password_pattern:
-        text = re.sub(password_pattern, lambda m: corrupt_string(m.group()), text)
-
+    # Replace passwords using the regex from the config.
+    password_conf = config.get("sensitive_patterns", {}).get("password", {})
+    password_regex = password_conf.get("regex")
+    if password_regex:
+        text = re.sub(password_regex, lambda m: corrupt_string(m.group()), text)
     return text
 
 class LangSentry:
-    def __init__(self, llm):
+    def __init__(self, llm, config=None):
         self.llm = llm
+        # Load configuration; if none is provided, load defaults.
+        if config is None:
+            self.config = load_config()
+        else:
+            self.config = config
 
     def process_input(self, input_text):
-        honeypot = honeypot_data(input_text)
+        # Whitelist the system prompt so it isn't manipulated.
+        import re
+        system_prompt_identifier = re.compile(r"You are HealthBot, a helpful and friendly healthcare assistant for MediCare Health Services.", re.IGNORECASE)
+        if system_prompt_identifier.search(input_text):
+            return self.llm.generate(input_text)
+
+        honeypot = honeypot_data(input_text, self.config)
         if honeypot:
             return honeypot
 
         output = self.llm.generate(input_text)
         output = self_heal_output(output)
-
-        analysis = analyze_response(output)
+        # Analyze the output using the configuration.
+        analysis = analyze_response(output, self.config)
         verdict = analysis.get("verdict")
         reason = analysis.get("reason", "No specific reason provided")
-
+        
         if verdict in ["block", "flag"]:
             print(f"Malicious content detected ({reason}). Triggering output transformation.")
-            output = segregate_sensitive_info(output)
+            output = segregate_sensitive_info(output, self.config)
         else:
             print("All checks passed. Returning original output.")
         return output
 
-llm = DummyLLM()
-sentry = LangSentry(llm)
+# Initialize the dummy LLM and LangSentry.
+# llm = DummyLLM()
+# sentry = LangSentry(llm)
 
-# Uncomment to run your test cases:
+# Uncomment the lines below to run your test cases:
 # for test in test_inputs:
 #     print(f"\nInput: {test}")
 #     print(f"Output (raw): {sentry.llm.generate(test)}")

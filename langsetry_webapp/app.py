@@ -1,13 +1,23 @@
 from flask import Flask, render_template, request, jsonify
 from google import genai
 from google.genai import types
-from config import MAKERSUITE_API_KEY
+
 import markdown2
 import os
+import sys
 import re
 import html
 import json
+
+sys.path.append(r"C:\ICT2214-Web-Security - New\LangSentry\keith")
+from defenses import LangSentry
+
+sys.path.append(r"C:\ICT2214-Web-Security - New\LangSentry\python_package")
 from langsentry import add_canary_token, check_for_canary_leak, check_misinformation
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+from config import MAKERSUITE_API_KEY
 
 app = Flask(__name__)
 
@@ -84,14 +94,28 @@ def misinformation_detection(message):
     return response.text
 
 
+class GeminiLLM:
+    def generate(self, input_text):
+        # Call prompt_gemini with the message and return the response text.
+        response = prompt_gemini(input_text)
+        return response.text
+
+
 def output_manipulation(message):
     """Analyze for potential data/output manipulation"""
-    # Check for the langsentry keyword
-    if "langsentry" in message.lower():
-        return "LangSentry triggered in output manipulation mode. Checking for response tampering..."
-
-    response = prompt_gemini(message)
-    return response.text
+    try:
+        if "langsentry" in message.lower():
+            return "LangSentry triggered in output manipulation mode. Checking for response tampering..."
+        
+        # Use the GeminiLLM adapter here.
+        llm = GeminiLLM()
+        sentry = LangSentry(llm)
+        manipulated_output = sentry.process_input(message)
+        return manipulated_output
+    except Exception as e:
+        import traceback
+        traceback.print_exc()  # This prints the full stack trace to the console
+        return f"An error occurred: {str(e)}"
 
 
 @app.route('/')
