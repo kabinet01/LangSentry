@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangSentry - AI Security Module</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0084ff;
+            --secondary-color: #e9ecef;
+            --text-color: #2d3748;
+            --border-color: #e2e8f0;
+            --hover-color: #0073e6;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* Landing Page Styles */
+        .landing-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+
+        .hero-section {
+            padding: 4rem 1rem;
+            text-align: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeIn 1s ease;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: #4a5568;
+            margin-bottom: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+
+        .feature-description {
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+
+        .start-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: white;
+            background-color: var(--primary-color);
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin-top: 2rem;
+            border: none;
+            cursor: pointer;
+        }
+
+        .start-button:hover {
+            background-color: var(--hover-color);
+            transform: translateY(-2px);
+        }
+
+        .chat-app {
+            display: none;
+        }
+
+        /* Header and Navigation */
+        .header {
+            background-color: white;
+            box-shadow: 0 2px 4px var(--shadow-color);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .nav-bar {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .nav-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            font-weight: 500;
+            font-size: 0.95rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .nav-item:hover {
+            background-color: #f1f5f9;
+            transform: translateY(-1px);
+        }
+
+        .nav-item.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* Main Content */
+        .main-container {
+            max-width: 1200px;
+            margin: 5rem auto 2rem;
+            padding: 0 1rem;
+        }
+
+        .chat-container {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            height: calc(100vh - 13rem);
+            min-height: 400px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            margin-left: auto;
+            box-shadow: 0 2px 4px rgba(0, 132, 255, 0.2);
+        }
+
+        .bot-message {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            margin-right: auto;
+            box-shadow: 0 2px 4px var(--shadow-color);
+        }
+
+        .input-container {
+            padding: 1.25rem;
+            background-color: white;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        #user-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        button {
+            padding: 0.875rem 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        button:hover {
+            background-color: var(--hover-color);
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            display: none;
+            padding: 0.5rem 1rem;
+            color: #666;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Markdown Styles */
+        .bot-message pre {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+        }
+
+        .bot-message code {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.9rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        .bot-message p code {
+            background-color: #f1f5f9;
+            color: #2d3748;
+        }
+
+        .bot-message table {
+            border-collapse: collapse;
+            margin: 1rem 0;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .bot-message th,
+        .bot-message td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        .bot-message th {
+            background-color: #f8fafc;
+            font-weight: 600;
+        }
+
+        .bot-message ul,
+        .bot-message ol {
+            margin: 0.75rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .bot-message blockquote {
+            border-left: 4px solid var(--primary-color);
+            margin: 1rem 0;
+            padding: 0.5rem 0 0.5rem 1rem;
+            color: #4a5568;
+            background-color: #f8fafc;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .nav-bar {
+                padding: 0.75rem;
+            }
+
+            .nav-item {
+                padding: 0.625rem 1rem;
+                font-size: 0.875rem;
+            }
+
+            .main-container {
+                margin-top: 4.5rem;
+                padding: 0 0.5rem;
+            }
+
+            .chat-messages {
+                height: calc(100vh - 11rem);
+                padding: 1rem;
+            }
+
+            .message {
+                max-width: 90%;
+                padding: 0.875rem 1rem;
+            }
+
+            .input-container {
+                padding: 1rem;
+            }
+
+            #user-input {
+                padding: 0.75rem;
+            }
+
+            button {
+                padding: 0.75rem 1.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .message {
+                max-width: 95%;
+            }
+
+            .nav-item {
+                padding: 0.5rem 0.875rem;
+                font-size: 0.8125rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Landing Page -->
+    <div class="landing-page" id="landing-page">
+        <div class="hero-section">
+            <h1 class="hero-title">Welcome to LangSentry</h1>
+            <p class="hero-subtitle">
+                A Python-based security module designed to detect and prevent prompt injection attacks in Large Language Model (LLM) applications.
+            </p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3 class="feature-title">Input Sanitization</h3>
+                    <p class="feature-description">
+                        Detect and prevent prompt injection attacks by sanitizing user inputs.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3 class="feature-title">Semantic Analysis</h3>
+                    <p class="feature-description">
+                        Analyze text structure and meaning to identify harmful or misleading content.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3 class="feature-title">Canary Token Detection</h3>
+                    <p class="feature-description">
+                        Identify and alert on potential tracking mechanisms and privacy concerns.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚠️</div>
+                    <h3 class="feature-title">Misinformation Detection</h3>
+                    <p class="feature-description">
+                        Analyze content credibility and detect potential misinformation patterns.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3 class="feature-title">Output Manipulation</h3>
+                    <p class="feature-description">
+                        Detect attempts to manipulate or misrepresent data and statistics.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3 class="feature-title">AI-Powered Analysis</h3>
+                    <p class="feature-description">
+                        Leverage advanced AI models for comprehensive security analysis.
+                    </p>
+                </div>
+            </div>
+            <button class="start-button" onclick="startApp()">Try LangSentry Now</button>
+        </div>
+    </div>
+
+    <!-- Chat Application -->
+    <div class="chat-app" id="chat-app">
+        <header class="header">
+            <nav class="nav-bar">
+                <div class="nav-item active" data-mode="default">Default Chat</div>
+                <div class="nav-item" data-mode="input-sanitization">Input Sanitization</div>
+                <div class="nav-item" data-mode="semantic-analysis">Semantic Analysis</div>
+                <div class="nav-item" data-mode="canary-token">Canary Token Detection</div>
+                <div class="nav-item" data-mode="misinformation">Misinformation Detection</div>
+                <div class="nav-item" data-mode="output-manipulation">Output Manipulation</div>
+            </nav>
+        </header>
+
+        <main class="main-container">
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message bot-message">👋 Hello! How can I help you today?</div>
+                </div>
+                <div class="loading" id="loading">Bot is thinking...</div>
+                <div class="input-container">
+                    <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Function to switch from landing page to chat app
+        function startApp() {
+            document.getElementById('landing-page').style.display = 'none';
+            document.getElementById('chat-app').style.display = 'block';
+            document.getElementById('user-input').focus();
+        }
+
+        // Existing JavaScript code
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const loading = document.getElementById('loading');
+        let currentMode = 'default';
+
+        // Add click handlers for nav items
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                // Update active state
+                document.querySelector('.nav-item.active').classList.remove('active');
+                this.classList.add('active');
+                
+                // Update current mode
+                currentMode = this.dataset.mode;
+                
+                // Clear chat messages except the first welcome message
+                while (chatMessages.children.length > 1) {
+                    chatMessages.removeChild(chatMessages.lastChild);
+                }
+            });
+        });
+
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            appendMessage(message, 'user', false);
+            userInput.value = '';
+
+            // Show loading indicator
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch(`/chat/${currentMode}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    appendMessage(data.response, 'bot', true);
+                } else {
+                    appendMessage('Sorry, I encountered an error.', 'bot', false);
+                }
+            } catch (error) {
+                appendMessage('Sorry, I encountered an error.', 'bot', false);
+            }
+
+            // Hide loading indicator
+            loading.style.display = 'none';
+        }
+
+        function appendMessage(message, sender, isHTML) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            if (isHTML) {
+                messageDiv.innerHTML = message;
+            } else {
+                messageDiv.textContent = message;
+            }
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Ensure the input is focused when the page loads
+        window.addEventListener('load', () => {
+            userInput.focus();
+        });
+
+        // Add touch support for mobile devices
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.querySelector('.nav-bar').addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, false);
+
+        document.querySelector('.nav-bar').addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, false);
+
+        function handleSwipe() {
+            const SWIPE_THRESHOLD = 50;
+            const navItems = Array.from(document.querySelectorAll('.nav-item'));
+            const currentIndex = navItems.findIndex(item => item.classList.contains('active'));
+            
+            if (touchEndX < touchStartX - SWIPE_THRESHOLD && currentIndex < navItems.length - 1) {
+                // Swipe left
+                navItems[currentIndex + 1].click();
+            } else if (touchEndX > touchStartX + SWIPE_THRESHOLD && currentIndex > 0) {
+                // Swipe right
+                navItems[currentIndex - 1].click();
+            }
+        }
+    </script>
+</body>
+</html> 
