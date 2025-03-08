@@ -8,6 +8,7 @@ import sys
 import re
 import html
 import json
+import langsentry
 
 sys.path.append(r"C:\ICT2214-Web-Security - New\LangSentry\keith")
 from defenses import LangSentry
@@ -23,6 +24,9 @@ app = Flask(__name__)
 
 # Configure Gemini API
 client = genai.Client(api_key=MAKERSUITE_API_KEY)
+
+# Initialize Model for semantic analysis
+model, sentences, embeddings = langsentry.initialize()
 
 # Simulated healthcare database
 with open('database.json', 'r') as f:
@@ -73,8 +77,11 @@ def semantic_analysis(message):
     if "langsentry" in message.lower():
         return "LangSentry triggered in semantic analysis mode. Initiating deep content inspection..."
 
-    response = prompt_gemini(message)
-    return response.text
+    if langsentry.similarity(message, model, sentences, embeddings):
+        return "Prompt has been blocked due to violation of guidelines."
+    else:
+        response = prompt_gemini(message)
+        return response.text
 
 
 def canary_token_detection(message):
