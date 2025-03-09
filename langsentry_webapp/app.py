@@ -29,10 +29,12 @@ model, sentences, embeddings = langsentry.initialize()
 with open('database.json', 'r') as f:
     HEALTHCARE_DATABASE = json.load(f)
 
+config = load_config()
+config['healthcare_database'] = HEALTHCARE_DATABASE
+
 # Define interactive system prompt for HealthBot
 with open('system_prompt.txt', 'r') as f:
     SYSTEM_PROMPT = f.read()
-
 
 def prompt_gemini(user_message, system_prompt=SYSTEM_PROMPT):
     """Base function to get response from Gemini with HealthBot context"""
@@ -122,7 +124,7 @@ def output_manipulation(message):
 
         # Use the GeminiLLM adapter here.
         llm = GeminiLLM()
-        sentry = LangSentry(llm)
+        sentry = LangSentry(llm, config=config)
         manipulated_output = sentry.process_input(message)
         return manipulated_output
     except Exception as e:
