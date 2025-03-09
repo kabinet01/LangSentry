@@ -7,7 +7,6 @@ from datetime import datetime
 from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
 from langsentry.check_output import DEFAULT_CONFIG, INDUSTRY_PROFILES, load_config, analyze_response
 
-# Initialize spaCy and transformers pipelines
 nlp = spacy.load("en_core_web_sm")
 ner_pipeline = pipeline("ner", model="dslim/bert-base-NER")
 summarizer_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
@@ -18,7 +17,6 @@ classifier = pipeline(
     tokenizer="roberta-large-mnli"
 )
 
-# Set up text-generation pipelines (using GPT-2 as an example)
 address_generator = pipeline("text-generation", model="GPT2")
 domain_generator = pipeline("text-generation", model="GPT2")
 
@@ -187,11 +185,11 @@ def build_patient_mapping(config):
         original_name = patient.get("name", "")
         original_email = patient.get("email", "")
         norm_name = normalize_name(original_name)
-        # Normalize the email's local part as well
+        # Normalize the email's local part
         email_local = original_email.partition("@")[0]
         norm_email = normalize_name(email_local)
-        fake_name = generate_fake_name()         # Generate one fake name per patient
-        fake_email = generate_fake_email(fake_name)  # Generate a fake email from that fake name
+        fake_name = generate_fake_name()
+        fake_email = generate_fake_email(fake_name)
         # Store both keys in the mapping so that a lookup by name OR email works.
         mapping[norm_name] = (fake_name, fake_email)
         mapping[norm_email] = (fake_name, fake_email)
@@ -228,9 +226,8 @@ def generate_fake_name():
     return f"{first_name} {last_name}"
 
 def normalize_name(name_text):
-    # Lowercase, remove punctuation, and collapse spaces
     name_text = name_text.lower()
-    name_text = re.sub(r'[^\w\s]', '', name_text)  # remove punctuation
+    name_text = re.sub(r'[^\w\s]', '', name_text)
     name_text = re.sub(r'\s+', ' ', name_text).strip()
     return name_text
 
@@ -260,7 +257,6 @@ def generate_fake_email_from_original(original_email, config):
         return EMAIL_REPLACEMENTS[original_email]
 
     username, _, _ = original_email.partition("@")
-    # Normalize the username to form a candidate key (e.g., "john smith")
     candidate_key = normalize_name(username)
 
     # Try to find an existing fake name (and email) for this candidate key in the patient mapping.
@@ -270,10 +266,9 @@ def generate_fake_email_from_original(original_email, config):
             EMAIL_REPLACEMENTS[original_email] = fake_email
             return fake_email
 
-    # No match found; generate a new fake name and corresponding fake email.
+    # Will generate a new fake name and email if no match found
     new_fake_name = generate_fake_name()
     new_fake_email = generate_fake_email(new_fake_name)
-    # Save the mapping for consistency
     patient_mapping[candidate_key] = (new_fake_name, new_fake_email)
     config["patient_mapping"] = patient_mapping
     EMAIL_REPLACEMENTS[original_email] = new_fake_email
@@ -374,28 +369,26 @@ def segregate_sensitive_info(text, config):
         config["patient_mapping"] = build_patient_mapping(config)
     patient_mapping = config["patient_mapping"]
 
-    # Replace emails.
+    
     email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b'
     text = re.sub(email_pattern, lambda m: generate_fake_email_from_original(m.group(), config), text)
-    # Replace dates.
+    
     date_pattern = r'\b(\d{1,2}/\d{1,2}/\d{4})\b'
     text = re.sub(date_pattern, lambda m: generate_fake_birthdate(), text)
-    # Replace addresses.
+    
     address_pattern = r'\b\d+\s+[A-Z][a-zA-Z ]+\b'
     text = re.sub(address_pattern, lambda m: generate_fake_address(), text)
-    # Replace phone numbers.
+    
     phone_pattern = r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
     text = re.sub(phone_pattern, lambda m: generate_fake_phone(), text)
-    # Replace credit card numbers.
+    
     cc_pattern = r'\b(?:\d{4}-){3}\d{4}\b|\b\d{4} \d{6} \d{5}\b'
     text = re.sub(cc_pattern, lambda m: generate_fake_credit_card(), text)
     
-    # Process entities with spaCy
     doc = nlp(text)
     for ent in doc.ents:
         print(f"  Detected entity: '{ent.text}' (label: {ent.label_})")
         
-        # Check if this entity contains any whitelisted terms
         whitelisted_term = None
         for w in WHITELIST:
             if w.lower() in ent.text.lower():
@@ -412,7 +405,6 @@ def segregate_sensitive_info(text, config):
                 fake_name, _ = patient_mapping[norm_ent]
             else:
                 fake_name = generate_fake_name()
-                # Optionally, store it if you want consistency for new names:
                 patient_mapping[norm_ent] = (fake_name, generate_fake_email(fake_name))
             PERSON_REPLACEMENTS[norm_ent] = fake_name
             text = text.replace(ent.text, fake_name)
@@ -431,14 +423,13 @@ def segregate_sensitive_info(text, config):
 class LangSentry:
     def __init__(self, llm, config=None):
         self.llm = llm
-        # Load configuration; if none is provided, load defaults.
         if config is None:
             self.config = load_config()
         else:
             self.config = config
 
     def process_input(self, input_text):
-        # Whitelist the system prompt so it isn't manipulated.
+        # Whitelist the system prompt
         import re
         system_prompt_identifier = re.compile(r"You are HealthBot, a helpful and friendly healthcare assistant for MediCare Health Services.", re.IGNORECASE)
         if system_prompt_identifier.search(input_text):
@@ -450,18 +441,5 @@ class LangSentry:
 
         output = self.llm.generate(input_text)
         output = self_heal_output(output)
-        # Analyze the output using the configuration.
-        # analysis = analyze_response(output, self.config)
-        # verdict = analysis.get("verdict")
-        # reason = analysis.get("reason", "No specific reason provided")
-        
-        # if verdict in ["block", "flag"]:
-            # print(f"Malicious content detected ({reason}). Triggering output transformation.")
-            # output = segregate_sensitive_info(output, self.config)
-        # else:
-            # print("All checks passed. Returning original output.")
-        # return output
-
-        print("Running segregate_sensitive_info() on all outputs.")
         output = segregate_sensitive_info(output, self.config)
         return output
