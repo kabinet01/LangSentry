@@ -23,7 +23,12 @@ name_generator = pipeline("text-generation", model="gpt2")
 address_generator = pipeline("text-generation", model="gpt2")
 domain_generator = pipeline("text-generation", model="gpt2")
 
-def generate_valid_output(generator, prompt, pattern, max_new_tokens, default, max_attempts=3, temperature=0.7):
+WHITELIST = [
+    "HealthBot",
+    "MediCare Health Services"
+]
+
+def generate_valid_output(generator, prompt, pattern, max_new_tokens, default, max_attempts=5, temperature=0.5):
     """
     Calls a text generator with a given prompt until the output matches the provided regex pattern.
     Falls back to a default value if no valid output is generated.
@@ -44,18 +49,16 @@ def generate_valid_output(generator, prompt, pattern, max_new_tokens, default, m
     return default
 
 def generate_fake_name():
-    prompt = ("Output only a realistic full name from any culture, written in English. "
-              "Do not include any extra text, numbers, or URLs. "
-              "For example: Mary Smith, Rajesh Kumar, Mei Ling, Hiro Tanaka, Hans Mueller, Kim Min.\n")
+    prompt = ("Output a full name (first and last) in English. No extra text.")
     pattern = r'^[A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)+$'
     result = name_generator(
         prompt,
-        max_new_tokens=15,
+        max_new_tokens=10,
         truncation=True,
         pad_token_id=50256,
         num_return_sequences=1,
         do_sample=True,
-        temperature=0.7
+        temperature=0.5
     )[0]['generated_text']
     
     # Debug print for diagnosis
@@ -207,20 +210,23 @@ def segregate_sensitive_info(text, config):
     # Replace credit card numbers.
     cc_pattern = r'\b(?:\d{4}-){3}\d{4}\b|\b\d{4} \d{6} \d{5}\b'
     text = re.sub(cc_pattern, lambda m: generate_fake_credit_card(), text)
-    # Replace entities using spaCy NER.
     doc = nlp(text)
     for ent in doc.ents:
+        if ent.text in WHITELIST:
+            continue
+
         if ent.label_ == "PERSON":
             text = text.replace(ent.text, generate_fake_name())
         elif ent.label_ == "ORG":
             text = text.replace(ent.text, generate_fake_org())
         elif ent.label_ == "GPE":
             text = text.replace(ent.text, generate_fake_location())
-    # Replace passwords using the regex from the config.
+
     password_conf = config.get("sensitive_patterns", {}).get("password", {})
     password_regex = password_conf.get("regex")
     if password_regex:
         text = re.sub(password_regex, lambda m: corrupt_string(m.group()), text)
+
     return text
 
 class LangSentry:
