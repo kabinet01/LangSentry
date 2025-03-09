@@ -56,7 +56,7 @@ def initialize():
 
 def similarity(query, model, sentences, embeddings):
     if len(query.split(" ")) > 2:
-        parts = re.split(r'[.!?;:\-()\[\]{}|and]', query)
+        parts = re.split(r'[.!?;:\-()\[\]{}]', query)
         chunks = [part.strip() for part in parts if part.strip()]
         my_embeddings = model.encode(chunks)
 
