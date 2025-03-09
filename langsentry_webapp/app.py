@@ -1,3 +1,4 @@
+from config import MAKERSUITE_API_KEY
 from flask import Flask, render_template, request, jsonify
 from google import genai
 from google.genai import types
@@ -10,15 +11,11 @@ import html
 import json
 import langsentry
 
-sys.path.append(r"C:\ICT2214-Web-Security - New\LangSentry\keith")
-from langsentry import defenses
-
-sys.path.append(r"C:\ICT2214-Web-Security - New\LangSentry\python_package")
-from langsentry import add_canary_token, check_for_canary_leak, check_misinformation
+from langsentry import add_canary_token, check_for_canary_leak, check_misinformation, defenses
+from langsentry.sanitize import sanitize_input
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
-from config import MAKERSUITE_API_KEY
 
 app = Flask(__name__)
 
@@ -57,8 +54,6 @@ def default_chat(message):
     return response.text
 
 
-from langsentry.sanitize import sanitize_input
-
 def input_sanitization(message):
     """Deliberately vulnerable input sanitization for presentation purposes"""
     # Check for the langsentry keyword
@@ -76,7 +71,6 @@ def input_sanitization(message):
     # Pass the sanitized message to the model
     response = prompt_gemini(sanitized_result['sanitized_output'])
     return response.text
-
 
 
 def semantic_analysis(message):
@@ -106,7 +100,11 @@ def canary_token_detection(message):
 def misinformation_detection(message):
     """Analyze content for potential misinformation"""
     response = prompt_gemini(message)
-    return response.text
+    res = check_misinformation(message, response.text)
+    output = f"""{response.text}
+    
+    Misinformation Check:\n{res}"""
+    return output
 
 
 class GeminiLLM:
@@ -121,7 +119,7 @@ def output_manipulation(message):
     try:
         if "langsentry" in message.lower():
             return "LangSentry triggered in output manipulation mode. Checking for response tampering..."
-        
+
         # Use the GeminiLLM adapter here.
         llm = GeminiLLM()
         sentry = LangSentry(llm)

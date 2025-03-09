@@ -24,14 +24,7 @@ python -m build
 ## Install
 
 ```bash
-cd langsentry
+cd python_package
 pip install . 
 ```
 
-## Push to PyPip
-
-```bash
-python -m build
-pip install twine
-twine upload dist/*
-```

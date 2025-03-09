@@ -1,0 +1,6 @@
+spacy
+google-genai
+pyperclip
+sentence_transformers
+pandas
+numpy
