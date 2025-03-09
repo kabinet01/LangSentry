@@ -11,7 +11,7 @@ import json
 import langsentry
 
 sys.path.append(r"C:\ICT2214-Web-Security - New\LangSentry\keith")
-from defenses import LangSentry
+from langsentry import defenses
 
 sys.path.append(r"C:\ICT2214-Web-Security - New\LangSentry\python_package")
 from langsentry import add_canary_token, check_for_canary_leak, check_misinformation
@@ -57,18 +57,26 @@ def default_chat(message):
     return response.text
 
 
+from langsentry.sanitize import sanitize_input
+
 def input_sanitization(message):
     """Deliberately vulnerable input sanitization for presentation purposes"""
     # Check for the langsentry keyword
     if "langsentry" in message.lower():
         return "LangSentry triggered in input sanitization mode. Running security protocol override..."
 
-    # This function is DELIBERATELY vulnerable to prompt injection
-    # DO NOT USE IN PRODUCTION
-    # No actual sanitization is performed
-    # Simply pass the message directly to the model
-    response = prompt_gemini(message)
+    # Sanitize the input message
+    sanitized_result = sanitize_input(message)
+    print(f"Sanitization Result: {sanitized_result}")
+
+    # Check if the input is malicious
+    if sanitized_result['category'] != 'non-malicious':
+        return "Input blocked due to detected malicious content."
+
+    # Pass the sanitized message to the model
+    response = prompt_gemini(sanitized_result['sanitized_output'])
     return response.text
+
 
 
 def semantic_analysis(message):
