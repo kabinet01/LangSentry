@@ -19,14 +19,183 @@ classifier = pipeline(
 )
 
 # Set up text-generation pipelines (using GPT-2 as an example)
-name_generator = pipeline("text-generation", model="gpt2")
-address_generator = pipeline("text-generation", model="gpt2")
-domain_generator = pipeline("text-generation", model="gpt2")
+address_generator = pipeline("text-generation", model="GPT2")
+domain_generator = pipeline("text-generation", model="GPT2")
 
 WHITELIST = [
     "HealthBot",
     "MediCare Health Services"
 ]
+
+CULTURES = {
+    "Indian": {
+        "male_first": [
+            "Amit", "Ravi", "Vikram", "Rajesh", "Manish", 
+            "Deepak", "Suresh", "Arun", "Naveen", "Rahul",
+            "Kunal", "Sanjay", "Anil", "Gopal", "Pranav",
+            "Rohan", "Siddharth", "Akash", "Varun", "Karthik"
+        ],
+        "female_first": [
+            "Priya", "Sneha", "Ananya", "Pooja", "Neha",
+            "Asha", "Meera", "Kavita", "Swati", "Divya",
+            "Rashmi", "Lata", "Geeta", "Sakshi", "Anjali",
+            "Bhavana", "Nidhi", "Monika", "Shweta", "Komal"
+        ],
+        "last": [
+            "Patel", "Sharma", "Reddy", "Singh", "Chopra",
+            "Varma", "Kapoor", "Bose", "Iyer", "Nair",
+            "Gupta", "Malhotra", "Saxena", "Dubey", "Yadav",
+            "Bhatia", "Bhattacharya", "Chaudhary", "Desai", "Gandhi"
+        ]
+    },
+    "Korean": {
+        "male_first": [
+            "Minjun", "Jihoo", "Hyunwoo", "Sungmin", "Joon",
+            "Daeho", "Taehyung", "Jinwoo", "Youngsoo", "Donghyun",
+            "Seungwon", "Minsik", "Junho", "Chanwoo", "Sanghyuk",
+            "Hoseok", "Kyungsoo", "Seongjin", "Gwangsoo", "Yongmin"
+        ],
+        "female_first": [
+            "Jiwoo", "Hyejin", "Soojin", "Jihye", "Minji",
+            "Eunji", "Yuna", "Haerin", "Ara", "Bora",
+            "Hyeri", "Seoyeon", "Nayoung", "Jiyeon", "Somin",
+            "Chaeyoung", "Eunjin", "Mina", "Hana", "Yeji"
+        ],
+        "last": [
+            "Kim", "Lee", "Park", "Choi", "Jung",
+            "Kang", "Yoon", "Lim", "Han", "Oh",
+            "Seo", "Shin", "Kwon", "Hwang", "Song",
+            "Hong", "Jeon", "Bae", "Baek", "Yu"
+        ]
+    },
+    "Japanese": {
+        "male_first": [
+            "Hiroshi", "Kenji", "Takashi", "Naoki", "Kazuo",
+            "Shinji", "Yuji", "Ryota", "Daichi", "Kenta",
+            "Haruto", "Ren", "Yuto", "Sota", "Tatsuya",
+            "Jun", "Toru", "Makoto", "Shigeru", "Masashi"
+        ],
+        "female_first": [
+            "Yuki", "Sakura", "Aiko", "Ayumi", "Miyuki",
+            "Haruka", "Akiko", "Emi", "Yuna", "Rina",
+            "Asuka", "Nana", "Miku", "Mei", "Hinata",
+            "Rei", "Nao", "Chihiro", "Eri", "Kaori"
+        ],
+        "last": [
+            "Sato", "Suzuki", "Tanaka", "Watanabe", "Ito",
+            "Nakamura", "Kobayashi", "Yamamoto", "Matsumoto", "Inoue",
+            "Sasaki", "Kato", "Yoshida", "Yamada", "Abe",
+            "Ogawa", "Ishikawa", "Maeda", "Fujita", "Fukuda"
+        ]
+    },
+    "English": {
+        "male_first": [
+            "Oliver", "George", "Jack", "Harry", "Charlie",
+            "Thomas", "James", "William", "Henry", "Daniel",
+            "Samuel", "Joseph", "Oscar", "Archie", "Leo",
+            "Edward", "Freddie", "Arthur", "Benjamin", "Max"
+        ],
+        "female_first": [
+            "Amelia", "Emily", "Sophie", "Jessica", "Grace",
+            "Lucy", "Chloe", "Charlotte", "Hannah", "Olivia",
+            "Ellie", "Isabella", "Mia", "Daisy", "Freya",
+            "Evie", "Ruby", "Scarlett", "Millie", "Alice"
+        ],
+        "last": [
+            "Smith", "Johnson", "Brown", "Taylor", "Anderson",
+            "Thomas", "Jackson", "White", "Harris", "Martin",
+            "Thompson", "Garcia", "Clark", "Lewis", "Robinson",
+            "Walker", "Young", "Allen", "King", "Scott"
+        ]
+    },
+    "Spanish": {
+        "male_first": [
+            "Carlos", "Miguel", "Rafael", "Juan", "Pedro",
+            "Alejandro", "Diego", "Luis", "Manuel", "Sergio",
+            "Jose", "Antonio", "Javier", "Fernando", "Francisco",
+            "Ricardo", "Pablo", "Hugo", "Adrian", "Mario"
+        ],
+        "female_first": [
+            "Lucia", "Sofia", "Maria", "Paula", "Sara",
+            "Valeria", "Alba", "Noelia", "Carmen", "Laura",
+            "Ana", "Elena", "Patricia", "Nuria", "Carla",
+            "Eva", "Raquel", "Ines", "Rocio", "Angela"
+        ],
+        "last": [
+            "Garcia", "Martinez", "Rodriguez", "Lopez", "Hernandez",
+            "Gonzalez", "Perez", "Sanchez", "Ramirez", "Torres",
+            "Flores", "Morales", "Ortega", "Vargas", "Castro",
+            "Ramos", "Gutierrez", "Navarro", "Reyes", "Cruz"
+        ]
+    },
+    "Chinese": {
+        "male_first": [
+            "Wei", "Lei", "Jun", "Hao", "Peng",
+            "Jie", "Qiang", "Bo", "Chao", "Chen",
+            "Long", "Feng", "Yu", "Bin", "Tao",
+            "Rui", "Zhi", "Shu", "Guang", "Xiang"
+        ],
+        "female_first": [
+            "Xia", "Mei", "Ling", "Hua", "Li",
+            "Fen", "Lan", "Juan", "Qiu", "Ying",
+            "Dan", "Yun", "Yue", "Na", "Yan",
+            "Ting", "Ning", "Rou", "Cai", "Shan"
+        ],
+        "last": [
+            "Wang", "Li", "Zhang", "Liu", "Chen",
+            "Yang", "Huang", "Zhao", "Wu", "Zhou",
+            "Xu", "Sun", "Ma", "Hu", "Zhu",
+            "Guo", "He", "Lin", "Gao", "Lu"
+        ]
+    },
+    "Malay": {
+        "male_first": [
+            "Ahmad", "Azman", "Rizal", "Zulkifli", "Faiz",
+            "Hafiz", "Rahim", "Shahrul", "Amir", "Hakim",
+            "Imran", "Syed", "Hadi", "Farid", "Kamal",
+            "Zain", "Arif", "Taufik", "Nasir", "Rashid"
+        ],
+        "female_first": [
+            "Siti", "Nur", "Faridah", "Aisyah", "Laila",
+            "Zarina", "Rohana", "Haslina", "Ain", "Suhana",
+            "Nadia", "Fatin", "Syikin", "Hani", "Rina",
+            "Izzah", "Amani", "Mariam", "Salmiah", "Norliza"
+        ],
+        "last": [
+            "Abdullah", "Ismail", "Rahman", "Omar", "Yusof",
+            "Mahmud", "Hassan", "Salleh", "Zakaria", "Saad",
+            "Tahir", "Rashid", "Razak", "Aziz", "Kassim",
+            "Ahmad", "Basri", "Yunus", "Ramli", "Zainudin"
+        ]
+    }
+}
+
+PERSON_REPLACEMENTS = {}
+EMAIL_REPLACEMENTS = {}
+
+def build_patient_mapping(config):
+    """
+    Builds a mapping from normalized patient name and normalized email local part
+    to a tuple (fake_name, fake_email) using the healthcare database from the config.
+    """
+    mapping = {}
+    db = config.get("healthcare_database")
+    if not db or "patients" not in db:
+        return mapping
+
+    for patient in db["patients"]:
+        original_name = patient.get("name", "")
+        original_email = patient.get("email", "")
+        norm_name = normalize_name(original_name)
+        # Normalize the email's local part as well
+        email_local = original_email.partition("@")[0]
+        norm_email = normalize_name(email_local)
+        fake_name = generate_fake_name()         # Generate one fake name per patient
+        fake_email = generate_fake_email(fake_name)  # Generate a fake email from that fake name
+        # Store both keys in the mapping so that a lookup by name OR email works.
+        mapping[norm_name] = (fake_name, fake_email)
+        mapping[norm_email] = (fake_name, fake_email)
+    return mapping
 
 def generate_valid_output(generator, prompt, pattern, max_new_tokens, default, max_attempts=5, temperature=0.5):
     """
@@ -49,38 +218,21 @@ def generate_valid_output(generator, prompt, pattern, max_new_tokens, default, m
     return default
 
 def generate_fake_name():
-    prompt = ("Output a full name (first and last) in English. No extra text.")
-    pattern = r'^[A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)+$'
-    result = name_generator(
-        prompt,
-        max_new_tokens=10,
-        truncation=True,
-        pad_token_id=50256,
-        num_return_sequences=1,
-        do_sample=True,
-        temperature=0.5
-    )[0]['generated_text']
-    
-    # Debug print for diagnosis
-    print("DEBUG raw output:", result)
-    
-    text = result[len(prompt):].strip().split("\n")[0]
-    text = re.sub(r'http\S+', '', text).strip()
-    
-    match = re.match(pattern, text)
-    if match:
-        extracted_name = match.group(0).strip()
-        print("DEBUG: extracted name:", extracted_name)
-        return extracted_name
+    gender = random.choice(["male", "female"])
+    culture = random.choice(list(CULTURES.keys()))
+    if gender == "male":
+        first_name = random.choice(CULTURES[culture]["male_first"])
     else:
-        words = text.split()
-        valid_words = [w for w in words if w[0].isupper() and len(w) > 1 and not re.search(r'\d', w)]
-        if len(valid_words) >= 2:
-            fallback_name = " ".join(valid_words[:2])
-            print("DEBUG: fallback name from words:", fallback_name)
-            return fallback_name
-        print("DEBUG: using default name: John Doe")
-        return "John Doe"
+        first_name = random.choice(CULTURES[culture]["female_first"])
+    last_name = random.choice(CULTURES[culture]["last"])
+    return f"{first_name} {last_name}"
+
+def normalize_name(name_text):
+    # Lowercase, remove punctuation, and collapse spaces
+    name_text = name_text.lower()
+    name_text = re.sub(r'[^\w\s]', '', name_text)  # remove punctuation
+    name_text = re.sub(r'\s+', ' ', name_text).strip()
+    return name_text
 
 def generate_fake_org():
     prompt = "Output a realistic company name: "
@@ -97,12 +249,35 @@ def generate_fake_address():
     pattern = r'^\d+ [A-Z][a-zA-Z ]+$'
     return generate_valid_output(address_generator, prompt, pattern, max_new_tokens=10, default="123 Main Street")
 
-def generate_fake_email():
-    fake_name = generate_fake_name().lower().replace(" ", ".")
-    prompt = "Output a realistic email domain: "
-    pattern = r'^[a-z]+\.(com|net|org)$'
-    domain = generate_valid_output(domain_generator, prompt, pattern, max_new_tokens=5, default="gmail.com")
-    return f"{fake_name}@{domain}"
+def generate_fake_email(fake_name):
+    domains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]
+    domain = random.choice(domains)
+    email_username = fake_name.lower().replace(" ", "_")
+    return f"{email_username}@{domain}"
+
+def generate_fake_email_from_original(original_email, config):
+    if original_email in EMAIL_REPLACEMENTS:
+        return EMAIL_REPLACEMENTS[original_email]
+
+    username, _, _ = original_email.partition("@")
+    # Normalize the username to form a candidate key (e.g., "john smith")
+    candidate_key = normalize_name(username)
+
+    # Try to find an existing fake name (and email) for this candidate key in the patient mapping.
+    patient_mapping = config.get("patient_mapping", {})
+    for norm_name, (fake_name, fake_email) in patient_mapping.items():
+        if candidate_key in norm_name or norm_name in candidate_key:
+            EMAIL_REPLACEMENTS[original_email] = fake_email
+            return fake_email
+
+    # No match found; generate a new fake name and corresponding fake email.
+    new_fake_name = generate_fake_name()
+    new_fake_email = generate_fake_email(new_fake_name)
+    # Save the mapping for consistency
+    patient_mapping[candidate_key] = (new_fake_name, new_fake_email)
+    config["patient_mapping"] = patient_mapping
+    EMAIL_REPLACEMENTS[original_email] = new_fake_email
+    return new_fake_email
 
 def generate_fake_credit_card():
     card_type = random.choice(["Visa", "MasterCard", "American Express"])
@@ -195,9 +370,13 @@ def honeypot_data(input_text, config):
     return None
 
 def segregate_sensitive_info(text, config):
+    if "patient_mapping" not in config:
+        config["patient_mapping"] = build_patient_mapping(config)
+    patient_mapping = config["patient_mapping"]
+
     # Replace emails.
     email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b'
-    text = re.sub(email_pattern, lambda m: generate_fake_email(), text)
+    text = re.sub(email_pattern, lambda m: generate_fake_email_from_original(m.group(), config), text)
     # Replace dates.
     date_pattern = r'\b(\d{1,2}/\d{1,2}/\d{4})\b'
     text = re.sub(date_pattern, lambda m: generate_fake_birthdate(), text)
@@ -210,13 +389,33 @@ def segregate_sensitive_info(text, config):
     # Replace credit card numbers.
     cc_pattern = r'\b(?:\d{4}-){3}\d{4}\b|\b\d{4} \d{6} \d{5}\b'
     text = re.sub(cc_pattern, lambda m: generate_fake_credit_card(), text)
+    
+    # Process entities with spaCy
     doc = nlp(text)
     for ent in doc.ents:
-        if ent.text in WHITELIST:
+        print(f"  Detected entity: '{ent.text}' (label: {ent.label_})")
+        
+        # Check if this entity contains any whitelisted terms
+        whitelisted_term = None
+        for w in WHITELIST:
+            if w.lower() in ent.text.lower():
+                whitelisted_term = w
+                break
+        
+        if whitelisted_term:
+            print(f"  -> '{ent.text}' contains whitelisted term '{whitelisted_term}'. Skipping replacement.")
             continue
 
         if ent.label_ == "PERSON":
-            text = text.replace(ent.text, generate_fake_name())
+            norm_ent = normalize_name(ent.text)
+            if norm_ent in patient_mapping:
+                fake_name, _ = patient_mapping[norm_ent]
+            else:
+                fake_name = generate_fake_name()
+                # Optionally, store it if you want consistency for new names:
+                patient_mapping[norm_ent] = (fake_name, generate_fake_email(fake_name))
+            PERSON_REPLACEMENTS[norm_ent] = fake_name
+            text = text.replace(ent.text, fake_name)
         elif ent.label_ == "ORG":
             text = text.replace(ent.text, generate_fake_org())
         elif ent.label_ == "GPE":
@@ -252,13 +451,17 @@ class LangSentry:
         output = self.llm.generate(input_text)
         output = self_heal_output(output)
         # Analyze the output using the configuration.
-        analysis = analyze_response(output, self.config)
-        verdict = analysis.get("verdict")
-        reason = analysis.get("reason", "No specific reason provided")
+        # analysis = analyze_response(output, self.config)
+        # verdict = analysis.get("verdict")
+        # reason = analysis.get("reason", "No specific reason provided")
         
-        if verdict in ["block", "flag"]:
-            print(f"Malicious content detected ({reason}). Triggering output transformation.")
-            output = segregate_sensitive_info(output, self.config)
-        else:
-            print("All checks passed. Returning original output.")
+        # if verdict in ["block", "flag"]:
+            # print(f"Malicious content detected ({reason}). Triggering output transformation.")
+            # output = segregate_sensitive_info(output, self.config)
+        # else:
+            # print("All checks passed. Returning original output.")
+        # return output
+
+        print("Running segregate_sensitive_info() on all outputs.")
+        output = segregate_sensitive_info(output, self.config)
         return output

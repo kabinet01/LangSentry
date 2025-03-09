@@ -10,14 +10,13 @@ import html
 import json
 import langsentry
 
-sys.path.append(r"C:\ICT2214-Web-Security - New\LangSentry\keith")
-from defenses import LangSentry
+sys.path.append(os.path.abspath("C:/ICT2214 - Web Security - New/LangSentry/python_package"))
+import langsentry
 
-sys.path.append(r"C:\ICT2214-Web-Security - New\LangSentry\python_package")
+from langsentry.defenses import LangSentry, load_config
+
 from langsentry import add_canary_token, check_for_canary_leak, check_misinformation
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(parent_dir)
 from config import MAKERSUITE_API_KEY
 
 app = Flask(__name__)
@@ -32,10 +31,12 @@ model, sentences, embeddings = langsentry.initialize()
 with open('database.json', 'r') as f:
     HEALTHCARE_DATABASE = json.load(f)
 
+config = load_config()
+config['healthcare_database'] = HEALTHCARE_DATABASE
+
 # Define interactive system prompt for HealthBot
 with open('system_prompt.txt', 'r') as f:
     SYSTEM_PROMPT = f.read()
-
 
 def prompt_gemini(user_message, system_prompt=SYSTEM_PROMPT):
     """Base function to get response from Gemini with HealthBot context"""
@@ -116,7 +117,7 @@ def output_manipulation(message):
         
         # Use the GeminiLLM adapter here.
         llm = GeminiLLM()
-        sentry = LangSentry(llm)
+        sentry = LangSentry(llm, config=config)
         manipulated_output = sentry.process_input(message)
         return manipulated_output
     except Exception as e:
