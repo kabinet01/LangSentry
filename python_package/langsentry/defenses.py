@@ -172,10 +172,6 @@ PERSON_REPLACEMENTS = {}
 EMAIL_REPLACEMENTS = {}
 
 def build_patient_mapping(config):
-    """
-    Builds a mapping from normalized patient name and normalized email local part
-    to a tuple (fake_name, fake_email) using the healthcare database from the config.
-    """
     mapping = {}
     db = config.get("healthcare_database")
     if not db or "patients" not in db:
@@ -196,10 +192,6 @@ def build_patient_mapping(config):
     return mapping
 
 def generate_valid_output(generator, prompt, pattern, max_new_tokens, default, max_attempts=5, temperature=0.5):
-    """
-    Calls a text generator with a given prompt until the output matches the provided regex pattern.
-    Falls back to a default value if no valid output is generated.
-    """
     for _ in range(max_attempts):
         result = generator(
             prompt,
