@@ -1,6 +1,7 @@
 from google import genai
 from google.genai import types
-
+import sys
+sys.path.append(r"T:/github_repo/web_project/LangSentry/langsentry_webapp")
 from config import MAKERSUITE_API_KEY
 
 client = genai.Client(api_key=MAKERSUITE_API_KEY)
