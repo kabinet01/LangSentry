@@ -16,8 +16,6 @@ setup(
         "sentence_transformers",
         "pandas",
         "numpy",
-        
-        
     ],
     author="Edwin, Keith, Max, Tim, Zeph",
     author_email="NIL",

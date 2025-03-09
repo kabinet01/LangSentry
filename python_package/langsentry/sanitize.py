@@ -122,8 +122,8 @@ if __name__ == "__main__":
         "chmod 777 /etc/passwd",  # Shell Injection
         "Safe input without special characters.",  # Non-malicious
         # Hidden binary message using zero-width encoding
-        "😀\u200B\u200C\u200B\u200B\u200C\u200B\u200C",
-        "😀󠁄󠁒󠁏󠁐󠀠󠁔󠁁󠁂󠁌󠁅󠀠󠁵󠁳󠁥󠁲󠁳"  # Hidden SQL Injection
+        "😀󠁓󠁅󠁌󠁅󠁃󠁔󠀠󠀪󠀠󠁆󠁒󠁏󠁍󠀠󠁵󠁳󠁥󠁲󠁳󠀠󠁗󠁈󠁅󠁒󠁅󠀠󠁮󠁡󠁭󠁥󠀽󠀧󠁡󠁤󠁭󠁩󠁮󠀧󠀠󠀭󠀭",
+        "😁󠁄󠁒󠁏󠁐󠀠󠁔󠁁󠁂󠁌󠁅󠀠󠁵󠁳󠁥󠁲󠁳"  # Normal emoji
     ]
 
     for test in test_inputs:

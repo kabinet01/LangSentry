@@ -1,3 +1,4 @@
+from config import MAKERSUITE_API_KEY
 from flask import Flask, render_template, request, jsonify
 from google import genai
 from google.genai import types
@@ -10,14 +11,11 @@ import html
 import json
 import langsentry
 
-sys.path.append(os.path.abspath("C:/ICT2214 - Web Security - New/LangSentry/python_package"))
-import langsentry
+from langsentry import add_canary_token, check_for_canary_leak, check_misinformation, defenses
+from langsentry.sanitize import sanitize_input
 
-from langsentry.defenses import LangSentry, load_config
-
-from langsentry import add_canary_token, check_for_canary_leak, check_misinformation
-
-from config import MAKERSUITE_API_KEY
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
 
 app = Flask(__name__)
 
@@ -64,11 +62,16 @@ def input_sanitization(message):
     if "langsentry" in message.lower():
         return "LangSentry triggered in input sanitization mode. Running security protocol override..."
 
-    # This function is DELIBERATELY vulnerable to prompt injection
-    # DO NOT USE IN PRODUCTION
-    # No actual sanitization is performed
-    # Simply pass the message directly to the model
-    response = prompt_gemini(message)
+    # Sanitize the input message
+    sanitized_result = sanitize_input(message)
+    print(f"Sanitization Result: {sanitized_result}")
+
+    # Check if the input is malicious
+    if sanitized_result['category'] != 'non-malicious':
+        return "Input blocked due to detected malicious content."
+
+    # Pass the sanitized message to the model
+    response = prompt_gemini(sanitized_result['sanitized_output'])
     return response.text
 
 
@@ -99,7 +102,11 @@ def canary_token_detection(message):
 def misinformation_detection(message):
     """Analyze content for potential misinformation"""
     response = prompt_gemini(message)
-    return response.text
+    res = check_misinformation(message, response.text)
+    output = f"""{response.text}
+    
+    Misinformation Check:\n{res}"""
+    return output
 
 
 class GeminiLLM:
@@ -114,7 +121,7 @@ def output_manipulation(message):
     try:
         if "langsentry" in message.lower():
             return "LangSentry triggered in output manipulation mode. Checking for response tampering..."
-        
+
         # Use the GeminiLLM adapter here.
         llm = GeminiLLM()
         sentry = LangSentry(llm, config=config)
